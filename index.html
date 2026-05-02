@@ -389,11 +389,11 @@
   <div class="upload-card" id="uploadZone">
     <span class="upload-icon">📄</span>
     <h2>Sube la factura del cliente</h2>
-    <p>Foto con el móvil o PDF · Luz o gas · Cualquier compañía</p>
+    <p>PDF o foto · Luz o gas · Cualquier compañía</p>
     <button class="btn-upload" onclick="document.getElementById('fileInput').click()">
-      📷 Seleccionar factura
+      📄 Seleccionar factura
     </button>
-    <input type="file" id="fileInput" accept="image/*,application/pdf" capture="environment" />
+    <input type="file" id="fileInput" accept="image/*,application/pdf" />
   </div>
 
   <div class="preview-card" id="previewCard">
@@ -527,7 +527,7 @@
     const rec = data.recomendacion;
     const opciones = data.opciones || [];
     const advertencias = data.advertencias || [];
-    comisionesOcultas = false; // reset on each new analysis
+    comisionesOcultas = false;
     let html = '';
 
     html += `
