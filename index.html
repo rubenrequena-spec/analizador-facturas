@@ -1,0 +1,688 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>Analizador de Facturas — Finanzas Healthy</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --verde: #22c55e;
+      --verde-oscuro: #16a34a;
+      --verde-claro: #dcfce7;
+      --naranja: #f97316;
+      --naranja-claro: #fff7ed;
+      --gris: #f8fafc;
+      --gris-borde: #e2e8f0;
+      --texto: #0f172a;
+      --texto-suave: #64748b;
+      --rojo: #dc2626;
+      --rojo-claro: #fee2e2;
+      --amarillo: #d97706;
+      --amarillo-claro: #fef3c7;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: var(--gris);
+      color: var(--texto);
+      min-height: 100vh;
+    }
+
+    header {
+      background: white;
+      border-bottom: 1px solid var(--gris-borde);
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      position: sticky;
+      top: 0;
+      z-index: 10;
+    }
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .logo-icon {
+      width: 34px;
+      height: 34px;
+      position: relative;
+    }
+    .logo-icon svg { width: 34px; height: 34px; }
+    header h1 { font-size: 16px; font-weight: 700; color: var(--texto); }
+    header p { font-size: 11px; color: var(--texto-suave); }
+
+    main { padding: 20px; max-width: 480px; margin: 0 auto; }
+
+    .upload-card {
+      background: white;
+      border-radius: 16px;
+      border: 2px dashed var(--gris-borde);
+      padding: 36px 24px;
+      text-align: center;
+      transition: all 0.2s;
+      cursor: pointer;
+      margin-bottom: 16px;
+    }
+    .upload-card:hover, .upload-card.drag-over {
+      border-color: var(--verde);
+      background: var(--verde-claro);
+    }
+    .upload-icon { font-size: 44px; margin-bottom: 14px; display: block; }
+    .upload-card h2 { font-size: 17px; font-weight: 700; margin-bottom: 6px; }
+    .upload-card p { font-size: 13px; color: var(--texto-suave); margin-bottom: 18px; }
+    .btn-upload {
+      background: var(--verde-oscuro);
+      color: white;
+      border: none;
+      padding: 13px 24px;
+      border-radius: 12px;
+      font-size: 15px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      transition: background 0.2s;
+    }
+    .btn-upload:hover { background: var(--verde); }
+    #fileInput { display: none; }
+
+    .preview-card {
+      background: white;
+      border-radius: 16px;
+      padding: 14px;
+      margin-bottom: 16px;
+      display: none;
+      align-items: center;
+      gap: 12px;
+      border: 1px solid var(--gris-borde);
+    }
+    .preview-card.visible { display: flex; }
+    .preview-thumb {
+      width: 52px; height: 52px;
+      border-radius: 10px;
+      object-fit: cover;
+      background: var(--gris);
+    }
+    .preview-info { flex: 1; }
+    .preview-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .preview-size { font-size: 11px; color: var(--texto-suave); }
+    .btn-remove {
+      background: none; border: none;
+      cursor: pointer; font-size: 18px;
+      color: var(--texto-suave); padding: 4px;
+    }
+
+    .btn-analyze {
+      background: var(--verde-oscuro);
+      color: white;
+      border: none;
+      padding: 15px;
+      border-radius: 14px;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      display: none;
+      transition: all 0.2s;
+      margin-bottom: 24px;
+    }
+    .btn-analyze.visible { display: block; }
+    .btn-analyze:hover { background: var(--verde); }
+    .btn-analyze:disabled { background: #94a3b8; cursor: not-allowed; }
+
+    .loading { display: none; text-align: center; padding: 40px 20px; }
+    .loading.visible { display: block; }
+    .spinner {
+      width: 44px; height: 44px;
+      border: 4px solid var(--verde-claro);
+      border-top-color: var(--verde-oscuro);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      margin: 0 auto 14px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loading h3 { font-size: 15px; font-weight: 600; margin-bottom: 5px; }
+    .loading p { font-size: 13px; color: var(--texto-suave); }
+
+    .resultado { display: none; }
+    .resultado.visible { display: block; }
+
+    .card-datos {
+      background: white;
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 12px;
+      border: 1px solid var(--gris-borde);
+    }
+    .card-titulo {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--texto-suave);
+      margin-bottom: 10px;
+    }
+    .dato-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--gris-borde);
+      font-size: 13px;
+    }
+    .dato-row:last-child { border-bottom: none; }
+    .dato-label { color: var(--texto-suave); }
+    .dato-valor { font-weight: 600; }
+
+    .badge-actual {
+      background: var(--amarillo-claro);
+      color: var(--amarillo);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 8px;
+      border-radius: 6px;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+
+    .opcion-card {
+      background: white;
+      border-radius: 16px;
+      padding: 14px 18px;
+      margin-bottom: 10px;
+      border: 1px solid var(--gris-borde);
+    }
+    .opcion-card.top { border-color: var(--verde-oscuro); border-width: 2px; }
+    .badge-top {
+      background: var(--verde-oscuro);
+      color: white;
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+    .badge-pos {
+      background: var(--gris-borde);
+      color: var(--texto-suave);
+      font-size: 10px;
+      font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 20px;
+      display: inline-block;
+      margin-bottom: 8px;
+    }
+    .opcion-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+    }
+    .opcion-nombre h3 { font-size: 15px; font-weight: 700; }
+    .opcion-nombre p { font-size: 12px; color: var(--texto-suave); margin-top: 2px; }
+    .ahorro-badge {
+      background: var(--verde-claro);
+      color: var(--verde-oscuro);
+      font-size: 14px;
+      font-weight: 800;
+      padding: 5px 10px;
+      border-radius: 10px;
+      white-space: nowrap;
+    }
+    .ahorro-badge.negativo { background: var(--rojo-claro); color: var(--rojo); }
+    .opcion-stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      margin-top: 4px;
+    }
+    .stat-box { background: var(--gris); border-radius: 10px; padding: 9px; }
+    .stat-label { font-size: 10px; color: var(--texto-suave); margin-bottom: 2px; }
+    .stat-valor { font-size: 14px; font-weight: 700; }
+    .stat-valor.comision { color: var(--verde-oscuro); }
+    .opcion-nota {
+      font-size: 11px;
+      color: var(--texto-suave);
+      margin-top: 8px;
+      padding-top: 8px;
+      border-top: 1px solid var(--gris-borde);
+    }
+
+    .card-recomendacion {
+      background: linear-gradient(135deg, #16a34a, #22c55e);
+      color: white;
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 12px;
+    }
+    .card-recomendacion .card-titulo { color: rgba(255,255,255,0.75); }
+    .rec-compania { font-size: 18px; font-weight: 800; margin-bottom: 3px; }
+    .rec-tarifa { font-size: 13px; opacity: 0.85; margin-bottom: 14px; }
+    .rec-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .rec-stat { background: rgba(255,255,255,0.18); border-radius: 10px; padding: 11px; }
+    .rec-stat-label { font-size: 10px; opacity: 0.75; margin-bottom: 3px; }
+    .rec-stat-valor { font-size: 19px; font-weight: 800; }
+    .rec-motivo {
+      font-size: 12px;
+      opacity: 0.85;
+      margin-top: 10px;
+      padding-top: 10px;
+      border-top: 1px solid rgba(255,255,255,0.2);
+    }
+
+    .advertencia {
+      background: var(--amarillo-claro);
+      border-radius: 10px;
+      padding: 10px;
+      margin-bottom: 8px;
+      font-size: 12px;
+      color: #92400e;
+      display: flex;
+      gap: 8px;
+    }
+
+    .btns-compartir {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+      margin-bottom: 10px;
+    }
+    .btn-whatsapp {
+      background: #25D366;
+      color: white;
+      border: none;
+      padding: 13px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-whatsapp:hover { background: #128C7E; }
+    .btn-email {
+      background: white;
+      color: var(--texto);
+      border: 1.5px solid var(--gris-borde);
+      padding: 13px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-email:hover { background: var(--gris); }
+    .btn-nueva {
+      background: var(--gris);
+      color: var(--texto-suave);
+      border: 1px solid var(--gris-borde);
+      padding: 13px;
+      border-radius: 12px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      width: 100%;
+      margin-bottom: 24px;
+      transition: all 0.2s;
+    }
+    .btn-nueva:hover { background: var(--gris-borde); }
+
+    .error-card {
+      background: var(--rojo-claro);
+      border-radius: 16px;
+      padding: 18px;
+      margin-bottom: 16px;
+      text-align: center;
+      display: none;
+    }
+    .error-card.visible { display: block; }
+    .error-card h3 { color: var(--rojo); font-size: 15px; margin-bottom: 6px; }
+    .error-card p { color: #7f1d1d; font-size: 13px; }
+
+    .section-title {
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--texto-suave);
+      margin: 18px 0 10px;
+    }
+
+    .barra-toggle {
+      display: flex;
+      justify-content: flex-end;
+      margin-bottom: 12px;
+    }
+    .btn-toggle-comision {
+      background: white;
+      border: 1.5px solid var(--gris-borde);
+      color: var(--texto-suave);
+      font-size: 12px;
+      font-weight: 600;
+      padding: 7px 13px;
+      border-radius: 20px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      transition: all 0.2s;
+    }
+    .btn-toggle-comision:hover { background: var(--gris); border-color: #94a3b8; }
+    .btn-toggle-comision.oculto { color: var(--verde-oscuro); border-color: var(--verde-oscuro); background: var(--verde-claro); }
+  </style>
+</head>
+<body>
+
+<header>
+  <img src="/logo.png" alt="Finanzas Healthy" style="height:40px;width:auto;" />
+  <div>
+    <h1>Finanzas Healthy</h1>
+    <p>Analizador de facturas energéticas</p>
+  </div>
+</header>
+
+<main>
+
+  <div class="upload-card" id="uploadZone">
+    <span class="upload-icon">📄</span>
+    <h2>Sube la factura del cliente</h2>
+    <p>Foto con el móvil o PDF · Luz o gas · Cualquier compañía</p>
+    <button class="btn-upload" onclick="document.getElementById('fileInput').click()">
+      📷 Seleccionar factura
+    </button>
+    <input type="file" id="fileInput" accept="image/*,application/pdf" capture="environment" />
+  </div>
+
+  <div class="preview-card" id="previewCard">
+    <img class="preview-thumb" id="previewImg" src="" alt="" />
+    <div class="preview-info">
+      <div class="preview-name" id="previewName">archivo.jpg</div>
+      <div class="preview-size" id="previewSize">0 KB</div>
+    </div>
+    <button class="btn-remove" onclick="resetForm()" title="Eliminar">✕</button>
+  </div>
+
+  <button class="btn-analyze" id="btnAnalyze" onclick="analyzeInvoice()">
+    ⚡ Analizar factura
+  </button>
+
+  <div class="loading" id="loading">
+    <div class="spinner"></div>
+    <h3>Analizando la factura…</h3>
+    <p>Comparando todas las tarifas disponibles</p>
+  </div>
+
+  <div class="error-card" id="errorCard">
+    <h3>⚠️ No se pudo analizar</h3>
+    <p id="errorMsg">Asegúrate de que la imagen es legible e inténtalo de nuevo.</p>
+  </div>
+
+  <div class="resultado" id="resultado"></div>
+
+</main>
+
+<script>
+  let selectedFile = null;
+  let selectedBase64 = null;
+  let selectedMediaType = null;
+  let lastAnalysis = null;
+  let comisionesOcultas = false;
+
+  function toggleComisiones() {
+    comisionesOcultas = !comisionesOcultas;
+    const btn = document.getElementById('btnToggleComision');
+    if (!btn) return;
+    document.querySelectorAll('.comision-valor').forEach(el => {
+      el.textContent = comisionesOcultas ? '••••' : el.dataset.valor;
+    });
+    btn.textContent = comisionesOcultas ? '🙈 Mostrar comisiones' : '👁️ Ocultar comisiones';
+    btn.classList.toggle('oculto', comisionesOcultas);
+  }
+
+  const uploadZone = document.getElementById('uploadZone');
+  uploadZone.addEventListener('dragover', e => { e.preventDefault(); uploadZone.classList.add('drag-over'); });
+  uploadZone.addEventListener('dragleave', () => uploadZone.classList.remove('drag-over'));
+  uploadZone.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadZone.classList.remove('drag-over');
+    if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+
+  document.getElementById('fileInput').addEventListener('change', e => {
+    if (e.target.files[0]) handleFile(e.target.files[0]);
+  });
+
+  function handleFile(file) {
+    selectedFile = file;
+    selectedMediaType = file.type || 'image/jpeg';
+    const previewCard = document.getElementById('previewCard');
+    const previewImg = document.getElementById('previewImg');
+    document.getElementById('previewName').textContent = file.name;
+    document.getElementById('previewSize').textContent = formatSize(file.size);
+    if (file.type.startsWith('image/')) {
+      previewImg.src = URL.createObjectURL(file);
+    } else {
+      previewImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><rect width="56" height="56" rx="10" fill="%23f1f5f9"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-size="24">📄</text></svg>';
+    }
+    previewCard.classList.add('visible');
+    document.getElementById('btnAnalyze').classList.add('visible');
+    const reader = new FileReader();
+    reader.onload = e => { selectedBase64 = e.target.result.split(',')[1]; };
+    reader.readAsDataURL(file);
+  }
+
+  function formatSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024*1024) return (bytes/1024).toFixed(1) + ' KB';
+    return (bytes/(1024*1024)).toFixed(1) + ' MB';
+  }
+
+  function resetForm() {
+    selectedFile = null; selectedBase64 = null; lastAnalysis = null;
+    document.getElementById('previewCard').classList.remove('visible');
+    document.getElementById('btnAnalyze').classList.remove('visible');
+    document.getElementById('resultado').classList.remove('visible');
+    document.getElementById('resultado').innerHTML = '';
+    document.getElementById('errorCard').classList.remove('visible');
+    document.getElementById('loading').classList.remove('visible');
+    document.getElementById('fileInput').value = '';
+  }
+
+  async function analyzeInvoice() {
+    if (!selectedBase64) return;
+    const btn = document.getElementById('btnAnalyze');
+    btn.disabled = true;
+    document.getElementById('loading').classList.add('visible');
+    document.getElementById('resultado').classList.remove('visible');
+    document.getElementById('errorCard').classList.remove('visible');
+    try {
+      const response = await fetch('/api/analyze', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: selectedBase64, mediaType: selectedMediaType, fileName: selectedFile?.name })
+      });
+      if (!response.ok) throw new Error('Error del servidor');
+      const data = await response.json();
+      lastAnalysis = data;
+      renderResultado(data);
+    } catch (err) {
+      document.getElementById('errorMsg').textContent = err.message || 'Error al conectar con el servidor.';
+      document.getElementById('errorCard').classList.add('visible');
+    } finally {
+      btn.disabled = false;
+      document.getElementById('loading').classList.remove('visible');
+    }
+  }
+
+  function fmt(num) {
+    if (num == null) return '—';
+    return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num) + '€';
+  }
+
+  function renderResultado(data) {
+    const c = data.cliente;
+    const rec = data.recomendacion;
+    const opciones = data.opciones || [];
+    const advertencias = data.advertencias || [];
+    comisionesOcultas = false; // reset on each new analysis
+    let html = '';
+
+    html += `
+      <div class="barra-toggle">
+        <button id="btnToggleComision" class="btn-toggle-comision" onclick="toggleComisiones()">
+          👁️ Ocultar comisiones
+        </button>
+      </div>`;
+
+    html += `
+      <div class="card-datos">
+        <div class="badge-actual">SITUACIÓN ACTUAL</div>
+        <div class="dato-row">
+          <span class="dato-label">Compañía</span>
+          <span class="dato-valor">${c.empresa_actual || '—'}</span>
+        </div>
+        <div class="dato-row">
+          <span class="dato-label">Tipo</span>
+          <span class="dato-valor">${c.tipo_suministro === 'gas' ? '🔥 Gas' : '⚡ Luz'} · ${c.tipo_acceso || '—'}</span>
+        </div>
+        <div class="dato-row">
+          <span class="dato-label">Consumo anual</span>
+          <span class="dato-valor">${c.consumo_anual_kwh ? c.consumo_anual_kwh.toLocaleString('es-ES') + ' kWh' : '—'}</span>
+        </div>
+        ${c.potencia_p1_kw ? `<div class="dato-row"><span class="dato-label">Potencia</span><span class="dato-valor">${c.potencia_p1_kw} kW</span></div>` : ''}
+        <div class="dato-row">
+          <span class="dato-label">Lo que paga ahora</span>
+          <span class="dato-valor" style="color:var(--rojo);font-size:17px">${fmt(c.coste_actual_anual_con_iva)}/año</span>
+        </div>
+      </div>`;
+
+    if (rec) {
+      const nuevoCosto = (c.coste_actual_anual_con_iva && rec.ahorro) ? Math.round(c.coste_actual_anual_con_iva - rec.ahorro) : null;
+      html += `
+        <div class="card-recomendacion">
+          <div class="card-titulo">⭐ RECOMENDACIÓN</div>
+          <div class="rec-compania">${rec.compania}</div>
+          <div class="rec-tarifa">${rec.tarifa}</div>
+          ${nuevoCosto ? `
+          <div style="display:flex;align-items:center;gap:10px;margin:10px 0 14px;background:rgba(255,255,255,0.15);border-radius:10px;padding:10px 12px;">
+            <div style="text-align:center;flex:1;">
+              <div style="font-size:10px;opacity:0.75;margin-bottom:2px;">Paga ahora</div>
+              <div style="font-size:16px;font-weight:700;text-decoration:line-through;opacity:0.7;">${fmt(c.coste_actual_anual_con_iva)}</div>
+            </div>
+            <div style="font-size:20px;opacity:0.6;">→</div>
+            <div style="text-align:center;flex:1;">
+              <div style="font-size:10px;opacity:0.75;margin-bottom:2px;">Nuevo coste/año</div>
+              <div style="font-size:20px;font-weight:800;">${fmt(nuevoCosto)}</div>
+            </div>
+          </div>` : ''}
+          <div class="rec-stats">
+            <div class="rec-stat">
+              <div class="rec-stat-label">Ahorro cliente/año</div>
+              <div class="rec-stat-valor">${fmt(rec.ahorro)}</div>
+            </div>
+            <div class="rec-stat">
+              <div class="rec-stat-label">Comisión total</div>
+              <div class="rec-stat-valor comision-valor" data-valor="${fmt(rec.comision)}">${fmt(rec.comision)}</div>
+            </div>
+          </div>
+          ${rec.motivo ? `<div class="rec-motivo">${rec.motivo}</div>` : ''}
+        </div>`;
+    }
+
+    if (opciones.length > 0) {
+      html += `<div class="section-title">Todas las opciones</div>`;
+      opciones.forEach((op, i) => {
+        const esTop = i === 0;
+        const ahorroPositivo = op.ahorro_anual > 0;
+        html += `
+          <div class="opcion-card ${esTop ? 'top' : ''}">
+            ${esTop ? '<span class="badge-top">🏆 Mejor ahorro</span>' : `<span class="badge-pos">#${op.posicion}</span>`}
+            <div class="opcion-header">
+              <div class="opcion-nombre">
+                <h3>${op.compania}</h3>
+                <p>${op.tarifa}</p>
+              </div>
+              <div class="ahorro-badge ${!ahorroPositivo ? 'negativo' : ''}">
+                ${ahorroPositivo ? '+' : ''}${fmt(op.ahorro_anual)}
+              </div>
+            </div>
+            <div class="opcion-stats">
+              <div class="stat-box">
+                <div class="stat-label">Coste estimado/año</div>
+                <div class="stat-valor">${fmt(op.coste_anual_estimado)}</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-label">Comisión total</div>
+                <div class="stat-valor comision comision-valor" data-valor="${fmt(op.comision_total)}">${fmt(op.comision_total)}</div>
+              </div>
+            </div>
+            ${op.retrocomision_meses_sin_riesgo != null ? `<div class="opcion-nota">⏱ Sin riesgo primeros ${op.retrocomision_meses_sin_riesgo} meses${op.nota ? ' · ' + op.nota : ''}</div>` : (op.nota ? `<div class="opcion-nota">${op.nota}</div>` : '')}
+          </div>`;
+      });
+    }
+
+    if (advertencias.length > 0) {
+      advertencias.forEach(av => {
+        html += `<div class="advertencia">⚠️ <span>${av}</span></div>`;
+      });
+    }
+
+    html += `
+      <div class="btns-compartir">
+        <button class="btn-whatsapp" onclick="compartirWhatsApp()">💬 WhatsApp</button>
+        <button class="btn-email" onclick="compartirEmail()">✉️ Email</button>
+      </div>
+      <button class="btn-nueva" onclick="resetForm()">🔄 Analizar otra factura</button>`;
+
+    const resultadoDiv = document.getElementById('resultado');
+    resultadoDiv.innerHTML = html;
+    resultadoDiv.classList.add('visible');
+    resultadoDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  function generarMensajeCliente() {
+    if (!lastAnalysis) return '';
+    const c = lastAnalysis.cliente;
+    const rec = lastAnalysis.recomendacion;
+    const tipo = c.tipo_suministro === 'gas' ? 'gas' : 'luz';
+    const actual = c.coste_actual_anual_con_iva ? Math.round(c.coste_actual_anual_con_iva) + '€/año' : '—';
+    const ahorro = rec ? Math.round(rec.ahorro) + '€' : '—';
+    const compania = rec ? rec.compania : '—';
+    const tarifa = rec ? rec.tarifa : '';
+
+    return `Hola 👋
+
+He analizado tu factura de *${tipo}* con Finanzas Healthy y esto es lo que he encontrado:
+
+📌 *Situación actual*
+Compañía: ${c.empresa_actual || '—'}
+Lo que pagas: *${actual}*
+
+✅ *Mejor opción para ti*
+${compania}${tarifa ? ' · ' + tarifa : ''}
+Ahorro estimado: *+${ahorro} al año*
+
+El cambio es gratuito, sin permanencia y lo gestionamos nosotros de principio a fin.
+
+Cualquier duda estoy a tu disposición 😊`;
+  }
+
+  function compartirWhatsApp() {
+    const msg = generarMensajeCliente();
+    const url = 'https://wa.me/?text=' + encodeURIComponent(msg);
+    window.open(url, '_blank');
+  }
+
+  function compartirEmail() {
+    const msg = generarMensajeCliente();
+    const asunto = 'Tu análisis de factura energética — Finanzas Healthy';
+    const url = 'mailto:?subject=' + encodeURIComponent(asunto) + '&body=' + encodeURIComponent(msg);
+    window.location.href = url;
+  }
+</script>
+
+</body>
+</html>
