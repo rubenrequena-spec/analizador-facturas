@@ -1,0 +1,4 @@
+node_modules/
+.env
+skill_content.txt
+.vercel
