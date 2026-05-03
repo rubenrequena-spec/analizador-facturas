@@ -577,7 +577,14 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ image: selectedBase64, mediaType: selectedMediaType, fileName: selectedFile?.name })
       });
-      if (!response.ok) throw new Error('Error del servidor');
+      if (!response.ok) {
+        let errDetail = 'Error del servidor';
+        try {
+          const errBody = await response.json();
+          errDetail = errBody.details || errBody.error || `Error ${response.status}`;
+        } catch (_) {}
+        throw new Error(errDetail);
+      }
       const data = await response.json();
       lastAnalysis = data;
       renderResultado(data);
