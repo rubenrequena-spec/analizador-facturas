@@ -62,8 +62,20 @@ ELECTRICIDAD 3.0TD — Precios (sin IVA, sin impuesto eléctrico):
 - TotalEnergies Clásica: energía P1:0,1982€/kWh | P2:0,1674€/kWh | P3:0,1275€/kWh | P4:0,1073€/kWh | P5:0,0989€/kWh | P6:0,1118€/kWh | Potencia P1:20,38€/kW/año | P2:10,62€/kW/año | P3:5,24€/kW/año | P4:4,57€/kW/año | P5:3,71€/kW/año | P6:2,94€/kW/año
 - Iberdrola 3.0TD / Plenitude 3.0TD: sin precios disponibles
 
-COMISIONES 3.0TD ADICIONALES:
-- TotalEnergies Clásica: consumo_MWh × 20 × 0,48 (ej: 9.374kWh = 9,374MWh → 9,374×20×0,48 ≈ 90€)
+COMISIONES 3.0TD ADICIONALES — TotalEnergies Clásica (tabla por consumo anual, usar tier TE2 por defecto):
+Consumo anual kWh | TE1  | TE2  | TE3  | TE4  | TE5
+0 - 1.500         | 64€  | 94€  | 103€ | 160€ | 212€
+1.501 - 3.000     | 80€  | 115€ | 126€ | 200€ | 240€
+3.001 - 5.000     | 92€  | 120€ | 128€ | 240€ | 280€
+5.001 - 10.000    | 121€ | 136€ | 151€ | 280€ | 320€
+10.001 - 20.000   | 152€ | 201€ | 226€ | 340€ | 396€
+20.001 - 30.000   | 220€ | 289€ | 326€ | 528€ | 624€
+30.001 - 40.000   | 267€ | 347€ | 397€ | 620€ | 748€
+40.001 - 50.000   | 316€ | 397€ | 455€ | 720€ | 936€
+50.001 - 75.000   | 448€ | 523€ | 606€ | 936€ | 1200€
+75.001 - 100.000  | 560€ | 679€ | 790€ | 1320€| 1360€
+100.001 - 150.000 | 720€ | 856€ | 1002€| 1640€| 1840€
+Usar TE2 salvo que se indique otro tier. La retrocomisión de TotalEnergies 3.0TD es 0 meses (riesgo año completo).
 
 FÓRMULA COSTE ANUAL 3.0TD (sin IVA):
 coste = Σ(Pi_kW × precio_Pi_€/kW/año) + Σ(Pi_kWh × precio_Pi_€/kWh)
@@ -105,9 +117,15 @@ EMPRESA 3.0TD:
 - Endesa Pyme 15-30kW (0-5MW consumo): 212€
 - Iberdrola 20-50kW Ámbito1: 302€ | Plenitude POWER: 156,80€
 
-RETROCOMISIÓN (meses sin riesgo de devolución):
+RETROCOMISIÓN (meses sin riesgo de devolución de comisión):
 - Endesa Hogar: 2 meses | Naturgy/Repsol Hogar: 4 meses | Gana: 3 meses
-- Iberdrola 2.0TD: 2 meses | Plenitude: riesgo todo el año
+- Iberdrola 2.0TD: 2 meses | Plenitude: riesgo todo el año (0 meses)
+- TotalEnergies 3.0TD: riesgo todo el año (0 meses)
+- Endesa Pyme 3.0TD: 2 meses
+
+PERMANENCIA PARA EL CLIENTE (contratos nuevos):
+- Tarifas 2.0TD: sin permanencia habitual
+- Tarifas 3.0TD y gas: permanencia habitual de 1 año. Indicarlo siempre en el campo "nota" de la opción.
 
 === INSTRUCCIONES DE CÁLCULO ===
 1. Extrae todos los datos de la factura. Si no aparece el consumo anual, calcula desde el periodo de la factura.
