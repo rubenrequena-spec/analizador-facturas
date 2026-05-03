@@ -8,24 +8,27 @@
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --verde: #489E7A;
-      --verde-oscuro: #2A6E52;
-      --verde-claro: #ECF5EF;
-      --naranja: #D97B3A;
-      --naranja-claro: #FEF3E6;
+      --verde: #6DC462;
+      --verde-oscuro: #4A9E40;
+      --verde-claro: #EBF8EA;
+      --teal: #55B8B0;
+      --teal-oscuro: #3A9890;
+      --teal-claro: #E3F5F3;
+      --naranja: #F5A84A;
+      --naranja-claro: #FEF4E6;
       --gris: #F5F7F6;
-      --gris-borde: #DCE8E1;
-      --texto: #1B2E27;
-      --texto-suave: #5A7A6D;
-      --rojo: #D43B3B;
-      --rojo-claro: #FDEAEA;
+      --gris-borde: #D8E8E4;
+      --texto: #1B2D26;
+      --texto-suave: #527870;
+      --rojo: #E8655D;
+      --rojo-claro: #FDEAE9;
       --amarillo: #B07030;
       --amarillo-claro: #FEF2D5;
     }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(160deg, #e4f2ea 0%, #f5f7f6 60%);
+      background: linear-gradient(160deg, #e3f5f3 0%, #f5f7f6 60%);
       color: var(--texto);
       min-height: 100vh;
     }
@@ -246,7 +249,7 @@
     }
 
     .card-recomendacion {
-      background: linear-gradient(135deg, #2A6E52, #489E7A);
+      background: linear-gradient(135deg, #3A9890, #6DC462);
       color: white;
       border-radius: 16px;
       padding: 18px;
@@ -617,6 +620,9 @@
         </button>
       </div>`;
 
+    const costeMensualActual = c.coste_actual_anual_con_iva ? Math.round(c.coste_actual_anual_con_iva / 12) : null;
+    const precioKwhActual = (c.coste_actual_anual_con_iva && c.consumo_anual_kwh) ? (c.coste_actual_anual_con_iva / c.consumo_anual_kwh).toFixed(3) : null;
+
     html += `
       <div class="card-datos">
         <div class="badge-actual">SITUACIÓN ACTUAL</div>
@@ -633,32 +639,49 @@
           <span class="dato-valor">${c.consumo_anual_kwh ? c.consumo_anual_kwh.toLocaleString('es-ES') + ' kWh' : '—'}</span>
         </div>
         ${c.potencia_p1_kw ? `<div class="dato-row"><span class="dato-label">Potencia</span><span class="dato-valor">${c.potencia_p1_kw} kW</span></div>` : ''}
+        ${precioKwhActual ? `<div class="dato-row"><span class="dato-label">Precio medio/kWh</span><span class="dato-valor">${precioKwhActual} €/kWh</span></div>` : ''}
         ${c.permanencia ? `<div class="dato-row"><span class="dato-label">Permanencia</span><span class="dato-valor"><span class="badge-perm">📅 hasta ${c.permanencia}</span></span></div>` : ''}
         <div class="dato-row">
           <span class="dato-label">Lo que paga ahora</span>
           <span class="dato-valor" style="color:var(--rojo);font-size:17px">${fmt(c.coste_actual_anual_con_iva)}/año</span>
         </div>
+        ${costeMensualActual ? `<div class="dato-row"><span class="dato-label" style="opacity:0.7">Equivalente mensual</span><span class="dato-valor" style="opacity:0.8">≈ ${fmt(costeMensualActual)}/mes</span></div>` : ''}
       </div>`;
 
     if (rec) {
       const nuevoCosto = (c.coste_actual_anual_con_iva && rec.ahorro) ? Math.round(c.coste_actual_anual_con_iva - rec.ahorro) : null;
+      const costeMensualNuevo = nuevoCosto ? Math.round(nuevoCosto / 12) : null;
+      const precioKwhNuevo = (nuevoCosto && c.consumo_anual_kwh) ? (nuevoCosto / c.consumo_anual_kwh).toFixed(3) : null;
       html += `
         <div class="card-recomendacion">
           <div class="card-titulo">⭐ RECOMENDACIÓN</div>
           <div class="rec-compania">${rec.compania}</div>
           <div class="rec-tarifa">${rec.tarifa}</div>
           ${nuevoCosto ? `
-          <div style="display:flex;align-items:center;gap:10px;margin:10px 0 14px;background:rgba(255,255,255,0.15);border-radius:10px;padding:10px 12px;">
+          <div style="display:flex;align-items:center;gap:10px;margin:10px 0 6px;background:rgba(255,255,255,0.15);border-radius:10px;padding:10px 12px;">
             <div style="text-align:center;flex:1;">
               <div style="font-size:10px;opacity:0.75;margin-bottom:2px;">Paga ahora</div>
               <div style="font-size:16px;font-weight:700;text-decoration:line-through;opacity:0.7;">${fmt(c.coste_actual_anual_con_iva)}</div>
+              ${costeMensualActual ? `<div style="font-size:10px;opacity:0.6;">≈ ${fmt(costeMensualActual)}/mes</div>` : ''}
             </div>
             <div style="font-size:20px;opacity:0.6;">→</div>
             <div style="text-align:center;flex:1;">
               <div style="font-size:10px;opacity:0.75;margin-bottom:2px;">Nuevo coste/año</div>
               <div style="font-size:20px;font-weight:800;">${fmt(nuevoCosto)}</div>
+              ${costeMensualNuevo ? `<div style="font-size:10px;opacity:0.75;">≈ ${fmt(costeMensualNuevo)}/mes</div>` : ''}
             </div>
-          </div>` : ''}
+          </div>
+          ${(precioKwhActual && precioKwhNuevo) ? `
+          <div style="display:flex;gap:8px;margin-bottom:12px;">
+            <div style="flex:1;background:rgba(255,255,255,0.12);border-radius:8px;padding:7px 10px;text-align:center;">
+              <div style="font-size:9px;opacity:0.7;margin-bottom:2px;">Precio actual/kWh</div>
+              <div style="font-size:13px;font-weight:700;text-decoration:line-through;opacity:0.7;">${precioKwhActual} €</div>
+            </div>
+            <div style="flex:1;background:rgba(255,255,255,0.12);border-radius:8px;padding:7px 10px;text-align:center;">
+              <div style="font-size:9px;opacity:0.7;margin-bottom:2px;">Precio nuevo/kWh</div>
+              <div style="font-size:13px;font-weight:700;">${precioKwhNuevo} €</div>
+            </div>
+          </div>` : ''}` : ''}
           <div class="rec-stats">
             <div class="rec-stat">
               <div class="rec-stat-label">Ahorro cliente/año</div>
@@ -667,7 +690,7 @@
             <div class="comision-flip">
               <div class="comision-flip-inner">
                 <div class="comision-front rec-stat">
-                  <div class="rec-stat-label">Rentabilidad comercial</div>
+                  <div class="rec-stat-label">Rentabilidad aprox.</div>
                   <div class="rec-stat-valor">${fmt(rec.comision)}</div>
                 </div>
                 <div class="comision-back" style="background:rgba(255,255,255,0.15)">🔒</div>
@@ -683,6 +706,12 @@
       opciones.forEach((op, i) => {
         const esTop = i === 0;
         const ahorroPositivo = op.ahorro_anual > 0;
+        const costeMensualOp = op.coste_anual_estimado ? Math.round(op.coste_anual_estimado / 12) : null;
+        const retroLabel = op.retrocomision_meses_sin_riesgo != null
+          ? (op.retrocomision_meses_sin_riesgo === 0
+            ? '⚠️ Retrocomisión: riesgo año completo'
+            : `⏱ Retrocomisión: garantizada a partir del mes ${op.retrocomision_meses_sin_riesgo}`)
+          : null;
         html += `
           <div class="opcion-card ${esTop ? 'top' : ''}">
             ${esTop ? '<span class="badge-top">🏆 Mejor ahorro</span>' : `<span class="badge-pos">#${op.posicion}</span>`}
@@ -697,20 +726,21 @@
             </div>
             <div class="opcion-stats">
               <div class="stat-box">
-                <div class="stat-label">Coste estimado/año</div>
+                <div class="stat-label">Coste est./año</div>
                 <div class="stat-valor">${fmt(op.coste_anual_estimado)}</div>
+                ${costeMensualOp ? `<div style="font-size:10px;color:var(--texto-suave);margin-top:2px;">≈ ${fmt(costeMensualOp)}/mes</div>` : ''}
               </div>
               <div class="comision-flip">
                 <div class="comision-flip-inner">
                   <div class="comision-front stat-box">
-                    <div class="stat-label">Rentabilidad comercial</div>
+                    <div class="stat-label">Rentabilidad aprox.</div>
                     <div class="stat-valor comision">${fmt(op.comision_total)}</div>
                   </div>
                   <div class="comision-back" style="background:var(--gris-borde)">🔒</div>
                 </div>
               </div>
             </div>
-            ${op.retrocomision_meses_sin_riesgo != null ? `<div class="opcion-nota comision-area">⏱ Sin riesgo primeros ${op.retrocomision_meses_sin_riesgo} meses</div>` : ''}
+            ${retroLabel ? `<div class="opcion-nota comision-area">${retroLabel}</div>` : ''}
             ${op.nota ? `<div class="opcion-nota">${limpiarTexto(op.nota)}</div>` : ''}
           </div>`;
       });
@@ -731,6 +761,9 @@
     }
 
     html += `
+      <div style="margin:4px 0 12px;padding:10px 14px;background:var(--amarillo-claro);border-radius:10px;border:1px solid #e6d5a8;">
+        <p style="font-size:11px;color:#7a5520;line-height:1.5;">⚠️ <strong>Datos estimados.</strong> Los cálculos se basan en los datos de esta factura y pueden variar según el perfil de consumo real, periodos tarifarios y condiciones del contrato. Las rentabilidades comerciales son aproximadas.</p>
+      </div>
       <div class="btns-compartir">
         <button class="btn-whatsapp" onclick="compartirWhatsApp()">💬 WhatsApp</button>
         <button class="btn-email" onclick="compartirEmail()">✉️ Email</button>
