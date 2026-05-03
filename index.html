@@ -3,29 +3,29 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
-  <title>Analizador de Facturas â Finanzas Healthy</title>
+  <title>Analizador de Facturas — Finanzas Healthy</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --verde: #52a882;
-      --verde-oscuro: #2d7a5f;
-      --verde-claro: #e6f4ee;
-      --naranja: #f97316;
-      --naranja-claro: #fff7ed;
-      --gris: #f4f8f6;
-      --gris-borde: #dde8e3;
-      --texto: #1a2e26;
-      --texto-suave: #5a7a6e;
-      --rojo: #dc2626;
-      --rojo-claro: #fee2e2;
-      --amarillo: #d97706;
-      --amarillo-claro: #fef3c7;
+      --verde: #489E7A;
+      --verde-oscuro: #2A6E52;
+      --verde-claro: #ECF5EF;
+      --naranja: #D97B3A;
+      --naranja-claro: #FEF3E6;
+      --gris: #F5F7F6;
+      --gris-borde: #DCE8E1;
+      --texto: #1B2E27;
+      --texto-suave: #5A7A6D;
+      --rojo: #D43B3B;
+      --rojo-claro: #FDEAEA;
+      --amarillo: #B07030;
+      --amarillo-claro: #FEF2D5;
     }
 
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: linear-gradient(160deg, #e8f5ee 0%, #f4f8f6 60%);
+      background: linear-gradient(160deg, #e4f2ea 0%, #f5f7f6 60%);
       color: var(--texto);
       min-height: 100vh;
     }
@@ -41,16 +41,8 @@
       top: 0;
       z-index: 10;
     }
-    .logo {
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-    .logo-icon {
-      width: 34px;
-      height: 34px;
-      position: relative;
-    }
+    .logo { display: flex; align-items: center; gap: 4px; }
+    .logo-icon { width: 34px; height: 34px; position: relative; }
     .logo-icon svg { width: 34px; height: 34px; }
     header h1 { font-size: 16px; font-weight: 700; color: var(--texto); }
     header p { font-size: 11px; color: var(--texto-suave); }
@@ -106,13 +98,14 @@
       object-fit: cover;
       background: var(--gris);
     }
-    .preview-info { flex: 1; }
-    .preview-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; }
+    .preview-info { flex: 1; min-width: 0; }
+    .preview-name { font-size: 13px; font-weight: 600; margin-bottom: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .preview-size { font-size: 11px; color: var(--texto-suave); }
     .btn-remove {
       background: none; border: none;
       cursor: pointer; font-size: 18px;
       color: var(--texto-suave); padding: 4px;
+      flex-shrink: 0;
     }
 
     .btn-analyze {
@@ -253,7 +246,7 @@
     }
 
     .card-recomendacion {
-      background: linear-gradient(135deg, #2d7a5f, #52a882);
+      background: linear-gradient(135deg, #2A6E52, #489E7A);
       color: white;
       border-radius: 16px;
       padding: 18px;
@@ -274,16 +267,55 @@
       border-top: 1px solid rgba(255,255,255,0.2);
     }
 
-    .advertencia {
+    /* Advertencias colapsables */
+    .info-accordion {
+      margin-bottom: 12px;
+    }
+    .btn-info-toggle {
+      width: 100%;
       background: var(--amarillo-claro);
+      border: 1px solid #e6d5a8;
       border-radius: 10px;
-      padding: 10px;
-      margin-bottom: 8px;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 600;
+      color: #7a5520;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s;
+      text-align: left;
+    }
+    .btn-info-toggle:hover { background: #fde8b0; }
+    .btn-info-toggle.abierto { border-radius: 10px 10px 0 0; border-bottom: none; }
+    .info-chevron {
+      font-size: 11px;
+      transition: transform 0.25s;
+      display: inline-block;
+    }
+    .btn-info-toggle.abierto .info-chevron { transform: rotate(180deg); }
+    .info-lista {
+      display: none;
+      background: var(--amarillo-claro);
+      border: 1px solid #e6d5a8;
+      border-top: none;
+      border-radius: 0 0 10px 10px;
+      overflow: hidden;
+    }
+    .info-lista.visible { display: block; }
+    .advertencia-item {
       font-size: 12px;
-      color: #92400e;
+      color: #7a5520;
+      padding: 9px 14px;
+      border-top: 1px solid rgba(176,112,48,0.15);
       display: flex;
       gap: 8px;
+      align-items: flex-start;
+      line-height: 1.45;
     }
+    .advertencia-item:first-child { border-top: none; }
+    .advertencia-item::before { content: "·"; font-weight: 900; flex-shrink: 0; margin-top: 1px; }
 
     .btns-compartir {
       display: grid;
@@ -391,6 +423,16 @@
       font-size: 22px;
     }
     .comisiones-ocultas .comision-area { display: none !important; }
+
+    /* Badge permanencia */
+    .badge-perm {
+      background: #EEF3FF;
+      color: #3B5BDB;
+      font-size: 11px;
+      font-weight: 600;
+      padding: 3px 8px;
+      border-radius: 6px;
+    }
   </style>
 </head>
 <body>
@@ -399,18 +441,18 @@
   <img src="/logo.png" alt="Finanzas Healthy" style="height:40px;width:auto;" />
   <div>
     <h1>Finanzas Healthy</h1>
-    <p>Analizador de facturas energÃ©ticas</p>
+    <p>Analizador de facturas energéticas</p>
   </div>
 </header>
 
 <main>
 
   <div class="upload-card" id="uploadZone">
-    <span class="upload-icon">ð</span>
+    <span class="upload-icon">📄</span>
     <h2>Sube la factura del cliente</h2>
-    <p>PDF o foto Â· Luz o gas Â· Cualquier compaÃ±Ã­a</p>
+    <p>PDF o foto · Luz o gas · Cualquier compañía</p>
     <button class="btn-upload" onclick="document.getElementById('fileInput').click()">
-      ð Seleccionar factura
+      📄 Seleccionar factura
     </button>
     <input type="file" id="fileInput" accept="image/*,application/pdf" />
   </div>
@@ -421,22 +463,22 @@
       <div class="preview-name" id="previewName">archivo.jpg</div>
       <div class="preview-size" id="previewSize">0 KB</div>
     </div>
-    <button class="btn-remove" onclick="resetForm()" title="Eliminar">â</button>
+    <button class="btn-remove" onclick="resetForm()" title="Eliminar">✕</button>
   </div>
 
   <button class="btn-analyze" id="btnAnalyze" onclick="analyzeInvoice()">
-    â¡ Analizar factura
+    ⚡ Analizar factura
   </button>
 
   <div class="loading" id="loading">
     <div class="spinner"></div>
-    <h3>Analizando la facturaâ¦</h3>
+    <h3>Analizando la factura…</h3>
     <p>Comparando todas las tarifas disponibles</p>
   </div>
 
   <div class="error-card" id="errorCard">
-    <h3>â ï¸ No se pudo analizar</h3>
-    <p id="errorMsg">AsegÃºrate de que la imagen es legible e intÃ©ntalo de nuevo.</p>
+    <h3>⚠️ No se pudo analizar</h3>
+    <p id="errorMsg">Asegúrate de que la imagen es legible e inténtalo de nuevo.</p>
   </div>
 
   <div class="resultado" id="resultado"></div>
@@ -450,16 +492,27 @@
   let lastAnalysis = null;
   let comisionesOcultas = true;
 
+  function limpiarTexto(txt) {
+    if (!txt) return txt;
+    return txt.replace(/[Gg]ual[uú]/g, 'nuestra red comercial');
+  }
+
   function toggleComisiones() {
     comisionesOcultas = !comisionesOcultas;
     const btn = document.getElementById('btnToggleComision');
     const div = document.getElementById('resultado');
     div.classList.toggle('comisiones-ocultas', comisionesOcultas);
     if (btn) {
-      btn.textContent = comisionesOcultas ? 'ðï¸' : 'ð';
-      btn.title = comisionesOcultas ? 'Mostrar comisiones' : 'Ocultar comisiones';
+      btn.textContent = comisionesOcultas ? '👁️' : '🙈';
+      btn.title = comisionesOcultas ? 'Mostrar rentabilidad' : 'Ocultar rentabilidad';
       btn.classList.toggle('visible', !comisionesOcultas);
     }
+  }
+
+  function toggleAdvertencias(btn) {
+    btn.classList.toggle('abierto');
+    const lista = btn.nextElementSibling;
+    lista.classList.toggle('visible');
   }
 
   const uploadZone = document.getElementById('uploadZone');
@@ -485,7 +538,7 @@
     if (file.type.startsWith('image/')) {
       previewImg.src = URL.createObjectURL(file);
     } else {
-      previewImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><rect width="56" height="56" rx="10" fill="%23f1f5f9"/><text x="50%" y="55%" dominant-baseline="middle" text-anchor="middle" font-size="24">ð</text></svg>';
+      previewImg.src = 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 56 56"><rect width="56" height="56" rx="10" fill="%23f1f5f9"/><text x="50%25" y="55%25" dominant-baseline="middle" text-anchor="middle" font-size="24">📄</text></svg>';
     }
     previewCard.classList.add('visible');
     document.getElementById('btnAnalyze').classList.add('visible');
@@ -538,8 +591,8 @@
   }
 
   function fmt(num) {
-    if (num == null) return 'â';
-    return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num) + 'â¬';
+    if (num == null) return '—';
+    return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num) + '€';
   }
 
   function renderResultado(data) {
@@ -547,35 +600,36 @@
     const rec = data.recomendacion;
     const opciones = data.opciones || [];
     const advertencias = data.advertencias || [];
-    comisionesOcultas = true; // hidden by default
+    comisionesOcultas = true;
     let html = '';
 
     html += `
       <div class="barra-toggle">
-        <button id="btnToggleComision" class="btn-toggle-comision" onclick="toggleComisiones()" title="Mostrar comisiones">
-          ðï¸
+        <button id="btnToggleComision" class="btn-toggle-comision" onclick="toggleComisiones()" title="Mostrar rentabilidad">
+          👁️
         </button>
       </div>`;
 
     html += `
       <div class="card-datos">
-        <div class="badge-actual">SITUACIÃN ACTUAL</div>
+        <div class="badge-actual">SITUACIÓN ACTUAL</div>
         <div class="dato-row">
-          <span class="dato-label">CompaÃ±Ã­a</span>
-          <span class="dato-valor">${c.empresa_actual || 'â'}</span>
+          <span class="dato-label">Compañía</span>
+          <span class="dato-valor">${c.empresa_actual || '—'}</span>
         </div>
         <div class="dato-row">
           <span class="dato-label">Tipo</span>
-          <span class="dato-valor">${c.tipo_suministro === 'gas' ? 'ð¥ Gas' : 'â¡ Luz'} Â· ${c.tipo_acceso || 'â'}</span>
+          <span class="dato-valor">${c.tipo_suministro === 'gas' ? '🔥 Gas' : '⚡ Luz'} · ${c.tipo_acceso || '—'}</span>
         </div>
         <div class="dato-row">
           <span class="dato-label">Consumo anual</span>
-          <span class="dato-valor">${c.consumo_anual_kwh ? c.consumo_anual_kwh.toLocaleString('es-ES') + ' kWh' : 'â'}</span>
+          <span class="dato-valor">${c.consumo_anual_kwh ? c.consumo_anual_kwh.toLocaleString('es-ES') + ' kWh' : '—'}</span>
         </div>
         ${c.potencia_p1_kw ? `<div class="dato-row"><span class="dato-label">Potencia</span><span class="dato-valor">${c.potencia_p1_kw} kW</span></div>` : ''}
+        ${c.permanencia ? `<div class="dato-row"><span class="dato-label">Permanencia</span><span class="dato-valor"><span class="badge-perm">📅 hasta ${c.permanencia}</span></span></div>` : ''}
         <div class="dato-row">
           <span class="dato-label">Lo que paga ahora</span>
-          <span class="dato-valor" style="color:var(--rojo);font-size:17px">${fmt(c.coste_actual_anual_con_iva)}/aÃ±o</span>
+          <span class="dato-valor" style="color:var(--rojo);font-size:17px">${fmt(c.coste_actual_anual_con_iva)}/año</span>
         </div>
       </div>`;
 
@@ -583,7 +637,7 @@
       const nuevoCosto = (c.coste_actual_anual_con_iva && rec.ahorro) ? Math.round(c.coste_actual_anual_con_iva - rec.ahorro) : null;
       html += `
         <div class="card-recomendacion">
-          <div class="card-titulo">â­ RECOMENDACIÃN</div>
+          <div class="card-titulo">⭐ RECOMENDACIÓN</div>
           <div class="rec-compania">${rec.compania}</div>
           <div class="rec-tarifa">${rec.tarifa}</div>
           ${nuevoCosto ? `
@@ -592,15 +646,15 @@
               <div style="font-size:10px;opacity:0.75;margin-bottom:2px;">Paga ahora</div>
               <div style="font-size:16px;font-weight:700;text-decoration:line-through;opacity:0.7;">${fmt(c.coste_actual_anual_con_iva)}</div>
             </div>
-            <div style="font-size:20px;opacity:0.6;">â</div>
+            <div style="font-size:20px;opacity:0.6;">→</div>
             <div style="text-align:center;flex:1;">
-              <div style="font-size:10px;opacity:0.75;margin-bottom:2px;">Nuevo coste/aÃ±o</div>
+              <div style="font-size:10px;opacity:0.75;margin-bottom:2px;">Nuevo coste/año</div>
               <div style="font-size:20px;font-weight:800;">${fmt(nuevoCosto)}</div>
             </div>
           </div>` : ''}
           <div class="rec-stats">
             <div class="rec-stat">
-              <div class="rec-stat-label">Ahorro cliente/aÃ±o</div>
+              <div class="rec-stat-label">Ahorro cliente/año</div>
               <div class="rec-stat-valor">${fmt(rec.ahorro)}</div>
             </div>
             <div class="comision-flip">
@@ -609,11 +663,11 @@
                   <div class="rec-stat-label">Rentabilidad comercial</div>
                   <div class="rec-stat-valor">${fmt(rec.comision)}</div>
                 </div>
-                <div class="comision-back" style="background:rgba(255,255,255,0.15)">ð</div>
+                <div class="comision-back" style="background:rgba(255,255,255,0.15)">🔒</div>
               </div>
             </div>
           </div>
-          ${rec.motivo ? `<div class="rec-motivo">${rec.motivo}</div>` : ''}
+          ${rec.motivo ? `<div class="rec-motivo">${limpiarTexto(rec.motivo)}</div>` : ''}
         </div>`;
     }
 
@@ -624,7 +678,7 @@
         const ahorroPositivo = op.ahorro_anual > 0;
         html += `
           <div class="opcion-card ${esTop ? 'top' : ''}">
-            ${esTop ? '<span class="badge-top">ð Mejor ahorro</span>' : `<span class="badge-pos">#${op.posicion}</span>`}
+            ${esTop ? '<span class="badge-top">🏆 Mejor ahorro</span>' : `<span class="badge-pos">#${op.posicion}</span>`}
             <div class="opcion-header">
               <div class="opcion-nombre">
                 <h3>${op.compania}</h3>
@@ -636,7 +690,7 @@
             </div>
             <div class="opcion-stats">
               <div class="stat-box">
-                <div class="stat-label">Coste estimado/aÃ±o</div>
+                <div class="stat-label">Coste estimado/año</div>
                 <div class="stat-valor">${fmt(op.coste_anual_estimado)}</div>
               </div>
               <div class="comision-flip">
@@ -645,28 +699,36 @@
                     <div class="stat-label">Rentabilidad comercial</div>
                     <div class="stat-valor comision">${fmt(op.comision_total)}</div>
                   </div>
-                  <div class="comision-back" style="background:var(--gris-borde)">ð</div>
+                  <div class="comision-back" style="background:var(--gris-borde)">🔒</div>
                 </div>
               </div>
             </div>
-            ${op.retrocomision_meses_sin_riesgo != null ? `<div class="opcion-nota comision-area">â± Sin riesgo primeros ${op.retrocomision_meses_sin_riesgo} meses</div>` : ''}
-            ${op.nota ? `<div class="opcion-nota">${op.nota}</div>` : ''}
+            ${op.retrocomision_meses_sin_riesgo != null ? `<div class="opcion-nota comision-area">⏱ Sin riesgo primeros ${op.retrocomision_meses_sin_riesgo} meses</div>` : ''}
+            ${op.nota ? `<div class="opcion-nota">${limpiarTexto(op.nota)}</div>` : ''}
           </div>`;
       });
     }
 
     if (advertencias.length > 0) {
-      advertencias.forEach(av => {
-        html += `<div class="advertencia">â ï¸ <span>${av}</span></div>`;
-      });
+      const avLimpias = advertencias.map(limpiarTexto);
+      html += `
+        <div class="info-accordion">
+          <button class="btn-info-toggle" onclick="toggleAdvertencias(this)">
+            <span>ℹ️ Info del análisis (${avLimpias.length})</span>
+            <span class="info-chevron">▼</span>
+          </button>
+          <div class="info-lista">
+            ${avLimpias.map(av => `<div class="advertencia-item">${av}</div>`).join('')}
+          </div>
+        </div>`;
     }
 
     html += `
       <div class="btns-compartir">
-        <button class="btn-whatsapp" onclick="compartirWhatsApp()">ð¬ WhatsApp</button>
-        <button class="btn-email" onclick="compartirEmail()">âï¸ Email</button>
+        <button class="btn-whatsapp" onclick="compartirWhatsApp()">💬 WhatsApp</button>
+        <button class="btn-email" onclick="compartirEmail()">✉️ Email</button>
       </div>
-      <button class="btn-nueva" onclick="resetForm()">ð Analizar otra factura</button>`;
+      <button class="btn-nueva" onclick="resetForm()">🔄 Analizar otra factura</button>`;
 
     const resultadoDiv = document.getElementById('resultado');
     resultadoDiv.innerHTML = html;
@@ -679,29 +741,30 @@
     const c = lastAnalysis.cliente;
     const rec = lastAnalysis.recomendacion;
     const tipo = c.tipo_suministro === 'gas' ? 'gas' : 'luz';
-    const actual = c.coste_actual_anual_con_iva ? Math.round(c.coste_actual_anual_con_iva) + 'â¬/aÃ±o' : 'â';
-    const ahorro = rec ? Math.round(rec.ahorro) + 'â¬' : 'â';
-    const compania = rec ? rec.compania : 'â';
+    const actual = c.coste_actual_anual_con_iva ? Math.round(c.coste_actual_anual_con_iva) + '€/año' : '—';
+    const ahorro = rec ? Math.round(rec.ahorro) + '€' : '—';
+    const compania = rec ? rec.compania : '—';
     const tarifa = rec ? rec.tarifa : '';
+    const permLinea = c.permanencia ? `\n⚠️ Permanencia hasta: ${c.permanencia}` : '';
 
     const tieneAhorro = rec && rec.ahorro && rec.ahorro > 0;
-    const ahorroLinea = tieneAhorro ? `ð° Ahorro estimado: *+${ahorro} al aÃ±o*` : `ð Hemos encontrado una opciÃ³n mÃ¡s adecuada para tu perfil de consumo`;
+    const ahorroLinea = tieneAhorro ? `💰 Ahorro estimado: *+${ahorro} al año*` : `📋 Hemos encontrado una opción más adecuada para tu perfil de consumo`;
 
-    return `ð¿ *AnÃ¡lisis de factura â Finanzas Healthy*
+    return `🌿 *Análisis de factura — Finanzas Healthy*
 
-Hola ð He revisado tu factura de *${tipo}* y esto es lo que encontrÃ©:
+Hola 👋 He revisado tu factura de *${tipo}* y esto es lo que encontré:
 
-â¡ *Tu situaciÃ³n actual*
-â¢ CompaÃ±Ã­a: ${c.empresa_actual || 'â'}
-â¢ Coste actual: *${actual}*
+⚡ *Tu situación actual*
+• Compañía: ${c.empresa_actual || '—'}
+• Coste actual: *${actual}*${permLinea}
 
-â *Nuestra recomendaciÃ³n*
-â¢ ${compania}${tarifa ? ' Â· ' + tarifa : ''}
+✅ *Nuestra recomendación*
+• ${compania}${tarifa ? ' · ' + tarifa : ''}
 ${ahorroLinea}
 
-ð El cambio es *gratuito*, sin permanencia y lo gestionamos nosotros de principio a fin.
+🔄 El cambio es *gratuito*, sin permanencia y lo gestionamos nosotros de principio a fin.
 
-Â¿Te interesa? Cualquier duda estoy a tu disposiciÃ³n ð`;
+¿Te interesa? Cualquier duda estoy a tu disposición 😊`;
   }
 
   function compartirWhatsApp() {
@@ -712,7 +775,7 @@ ${ahorroLinea}
 
   function compartirEmail() {
     const msg = generarMensajeCliente();
-    const asunto = 'Tu anÃ¡lisis de factura energÃ©tica â Finanzas Healthy';
+    const asunto = 'Tu análisis de factura energética — Finanzas Healthy';
     const url = 'mailto:?subject=' + encodeURIComponent(asunto) + '&body=' + encodeURIComponent(msg);
     window.location.href = url;
   }
