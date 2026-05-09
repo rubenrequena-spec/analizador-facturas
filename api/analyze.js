@@ -13,8 +13,9 @@ SIEMPRE responde en formato JSON con esta estructura exacta:
     "potencia_p2_kw": número o null,
     "consumo_anual_kwh": número,
     "coste_actual_anual_con_iva": número,
+        "precio_energia_kwh": número o null (precio medio energía €/kWh SIN potencia ni impuestos — extraído del desglose de la factura),
     "provincia": "provincia si aparece",
-    "permanencia": "fecha fin de permanencia en formato legible (ej: 'dic 2025') o null si no tiene o no se indica"
+        "permanencia": "null si NO hay permanencia / 'mes año' si SÍ hay penalización por baja anticipada. IMPORTANTE: lee el campo PERMANENCIA de la factura — si dice NO devuelve null. La fecha fin de contrato NO es permanencia."
   },
   "opciones": [
     {
@@ -142,7 +143,8 @@ PERMANENCIA PARA EL CLIENTE (contratos nuevos):
 8. Si Gana Energía y el cliente no está en Península, exclúyela.
 9. Plenitude: marcar siempre que es precio orientativo (indexado a mercado).
 10. El campo "motivo" debe estar centrado en el beneficio para el CLIENTE (ahorro, estabilidad, condiciones). NO mencionar comisiones ni nombres de canales comerciales en el motivo.
-11. Si en la factura aparece fecha de fin de contrato, permanencia o vencimiento de compromiso, extráela al campo "permanencia". Si no hay, pon null.`;
+11. PERMANENCIA: Busca el campo específico "Permanencia" en la factura. Si dice "NO" o similar → permanencia = null. Si dice "SÍ" o muestra fecha de penalización por cancelación anticipada → pon esa fecha (ej: 'ene 2027'). CRÍTICO: la "fecha fin de contrato" NO es permanencia — son cosas distintas.
+12. PRECIO ENERGÍA: Extrae el precio medio de energía en €/kWh del desglose de la factura (solo término de energía, sin potencia ni impuestos). Para 3.0TD calcula media ponderada P1..P6 por consumo. Para 2.0TD usa el precio plano. Devuélvelo en "precio_energia_kwh" con 4 decimales.`;
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
