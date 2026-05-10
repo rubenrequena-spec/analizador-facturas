@@ -1,0 +1,8 @@
+{
+  "name": "analizador-facturas-fh",
+  "version": "1.0.0",
+  "description": "Analizador de facturas energéticas - Finanzas Healthy",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.39.0"
+  }
+}
