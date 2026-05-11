@@ -621,9 +621,7 @@
       </div>`;
 
     const costeMensualActual = c.coste_actual_anual_con_iva ? Math.round(c.coste_actual_anual_con_iva / 12) : null;
-    // Precio de energía: usa el campo extraído directamente de la factura (sin potencia ni impuestos).
-    // Si no viene del modelo, no lo mostramos — mejor no mostrar nada que mostrar un dato engañoso.
-    const precioEnergiaKwh = c.precio_energia_kwh ? Number(c.precio_energia_kwh).toFixed(4) : null;
+        const precioEnergiaKwh = c.precio_energia_kwh ? Number(c.precio_energia_kwh).toFixed(4) : null;
 
     html += `
       <div class="card-datos">
@@ -641,8 +639,8 @@
           <span class="dato-valor">${c.consumo_anual_kwh ? c.consumo_anual_kwh.toLocaleString('es-ES') + ' kWh' : '—'}</span>
         </div>
         ${c.potencia_p1_kw ? `<div class="dato-row"><span class="dato-label">Potencia</span><span class="dato-valor">${c.potencia_p1_kw} kW</span></div>` : ''}
-        ${precioEnergiaKwh ? `<div class="dato-row"><span class="dato-label">Precio energía/kWh</span><span class="dato-valor">${precioEnergiaKwh} €/kWh</span></div>` : ''}
-        ${c.permanencia ? `<div class="dato-row"><span class="dato-label">Permanencia</span><span class="dato-valor"><span class="badge-perm" style="background:var(--rojo-claro);color:var(--rojo)">⚠️ Sí · hasta ${c.permanencia}</span></span></div>` : `<div class="dato-row"><span class="dato-label">Permanencia</span><span class="dato-valor" style="color:var(--verde-oscuro);font-weight:600">✓ NO</span></div>`}
+                ${precioEnergiaKwh ? `<div class="dato-row"><span class="dato-label">Precio energía/kWh</span><span class="dato-valor">${precioEnergiaKwh} €/kWh</span></div>` : ''}
+                ${c.permanencia ? `<div class="dato-row"><span class="dato-label">Permanencia</span><span class="dato-valor"><span class="badge-perm" style="background:var(--rojo-claro);color:var(--rojo)">⚠️ Sí · hasta ${c.permanencia}</span></span></div>` : `<div class="dato-row"><span class="dato-label">Permanencia</span><span class="dato-valor" style="color:var(--verde-oscuro);font-weight:600">✓ NO</span></div>`}
         <div class="dato-row">
           <span class="dato-label">Lo que paga ahora</span>
           <span class="dato-valor" style="color:var(--rojo);font-size:17px">${fmt(c.coste_actual_anual_con_iva)}/año</span>
