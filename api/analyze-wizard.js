@@ -17,19 +17,23 @@ SIEMPRE responde en formato JSON con esta estructura exacta (sin texto adicional
   "coste_actual_anual": número (coste anual CON IVA),
   "coste_actual_mensual": número (coste mensual medio CON IVA),
   "precio_energia_kwh_actual": número o null (precio medio de energía SIN potencia ni impuestos, extraído del desglose),
+  "potencia_p1_kw": número o null (potencia contratada P1 en kW, extraída de la factura),
+  "potencia_p2_kw": número o null (potencia contratada P2 en kW, o null si tarifa 3.0TD o gas),
   "permanencia": null o "mes año" si hay penalización real por cancelación anticipada,
+  "fecha_fin_contrato": null o "mes año" (fecha de vencimiento del contrato actual, si aparece en la factura; NO es lo mismo que permanencia),
   "opciones": [
     {
       "posicion": 1,
       "coste_anual_estimado": número (coste anual estimado CON IVA),
       "ahorro_anual": número (ahorro anual estimado en €),
       "ahorro_mensual": número (ahorro mensual estimado en €),
+      "precio_energia_kwh_estimado": número o null (precio de energía €/kWh SIN potencia ni impuestos de la nueva tarifa),
       "nota": "condición relevante para el cliente (permanencia, precio indexado, etc.) o null"
     },
     { "posicion": 2, ... },
     { "posicion": 3, ... }
   ],
-  "advertencias": ["advertencias relevantes para el cliente, array vacío si no hay ninguna"]
+  "advertencias": ["solo advertencias técnicas relevantes para el cliente: consumo estimado, periodos incompletos, etc. NUNCA incluir nombres de compañías ni tarifas en este campo"]
 }
 
 === DATOS DE TARIFAS VIGENTES (Mayo 2026) ===
@@ -52,14 +56,15 @@ coste = (P1_kW × P1_€/año) + (P2_kW × P2_€/año) + (kWh × €/kWh)
 Luego: × 1,0511 (impuesto eléctrico 5,11%) × 1,21 (IVA)
 
 ELECTRICIDAD 3.0TD — Precios sin IVA ni impuesto eléctrico:
-- Endesa Pyme Simply:    energía 0,1473 €/kWh (precio único) | P1: 21,877 €/kW/año | P2: 12,118 €/kW/año | P3: 5,982 €/kW/año | P4: 5,386 €/kW/año | P5: 4,014 €/kW/año | P6: 2,942 €/kW/año
-- TotalEnergies Clásica: energía P1:0,1982 €/kWh | P2:0,1674 €/kWh | P3:0,1275 €/kWh | P4:0,1073 €/kWh | P5:0,0989 €/kWh | P6:0,1118 €/kWh | Potencia P1:20,38 €/kW/año | P2:10,62 €/kW/año | P3:5,24 €/kW/año | P4:4,57 €/kW/año | P5:3,71 €/kW/año | P6:2,94 €/kW/año
+- Endesa Pyme Simply:       energía 0,1473 €/kWh (precio único) | P1: 21,877 €/kW/año | P2: 12,118 €/kW/año | P3: 5,982 €/kW/año | P4: 5,386 €/kW/año | P5: 4,014 €/kW/año | P6: 2,942 €/kW/año
+- Endesa Pyme Open Plana:   energía 0,1389 €/kWh (precio único 24h) | P1: 21,877 €/kW/año | P2: 12,118 €/kW/año | P3: 5,982 €/kW/año | P4: 5,386 €/kW/año | P5: 4,014 €/kW/año | P6: 2,942 €/kW/año
+- TotalEnergies Clásica:    energía P1:0,1982 €/kWh | P2:0,1674 €/kWh | P3:0,1275 €/kWh | P4:0,1073 €/kWh | P5:0,0989 €/kWh | P6:0,1118 €/kWh | Potencia P1:20,38 €/kW/año | P2:10,62 €/kW/año | P3:5,24 €/kW/año | P4:4,57 €/kW/año | P5:3,71 €/kW/año | P6:2,94 €/kW/año
 - Iberdrola 3.0TD / Plenitude 3.0TD: sin precios disponibles
 
 FÓRMULA COSTE ANUAL 3.0TD (sin IVA):
 coste = Σ(Pi_kW × precio_Pi_€/kW/año) + Σ(Pi_kWh × precio_Pi_€/kWh)
 Luego: × 1,0511 (impuesto eléctrico) × 1,21 (IVA)
-Si no hay desglose por periodo: usar precio único Endesa (0,1473 €/kWh) con kWh total y promedio ponderado de potencia. Indicar "(estimación orientativa)" en advertencias.
+Si no hay desglose de consumo por periodo: usar el precio único de energía con kWh total. Para la potencia: calcular Σ(Pi_kW × precio_Pi_€/kW/año) usando los kW contratados por periodo que aparecen en la factura (ej: 8/8/8/8/8/17,5 kW → P1:8×21,877 + P2:8×12,118 + ... + P6:17,5×2,942). Indicar "(estimación orientativa)" en advertencias.
 
 GAS — Precios sin IVA ni imp. hidrocarburos (0,00234 €/kWh):
 - Naturgy RL1: 0,07953 €/kWh + 5,15 €/mes fijo
@@ -68,27 +73,30 @@ GAS — Precios sin IVA ni imp. hidrocarburos (0,00234 €/kWh):
 - Endesa RL1:  0,07443 €/kWh + 7,18 €/mes fijo
 - Endesa RL2:  0,07128 €/kWh + 14,60 €/mes fijo
 - Endesa RL3:  0,0666  €/kWh + 30,67 €/mes fijo
-- Gana RL1:    0,07000 €/kWh + 3,93 €/mes fijo
-- Gana RL2:    0,07000 €/kWh + 8,11 €/mes fijo
+- Gana RL1:    (coste~0,07€) + 0,011 €/kWh + 3,93 €/mes fijo
+- Gana RL2:    (coste~0,07€) + 0,006 €/kWh + 8,11 €/mes fijo
+- Gana RL3:    (coste~0,07€) + 0,004 €/kWh + 18,82 €/mes fijo
 - Repsol RL1:  0,08990 €/kWh + 6,90 €/mes fijo
 - Repsol RL2:  0,08990 €/kWh + 11,90 €/mes fijo
+- Repsol RL3:  0,08990 €/kWh + 15,90 €/mes fijo
 
 FÓRMULA COSTE ANUAL GAS (sin IVA):
 coste = (fijo_mes × 12) + (kWh × (precio_variable + 0,00234))
 Luego: × 1,21 (IVA)
 
 === REGLAS DE CÁLCULO Y RECOMENDACIÓN ===
-1. Extrae todos los datos de la factura. Si no aparece el consumo anual, calcula desde el periodo facturado.
-2. Si no aparece el coste actual anual, calcula desde el importe de la factura.
-3. IMPORTANTE: compara SIEMPRE el cliente con tarifas de su mismo tipo de acceso.
+1. Extrae todos los datos de la factura. Si no aparece el consumo anual, extrapola desde el periodo facturado (kWh_periodo × 365 / días_periodo).
+2. COSTE ACTUAL: usa SIEMPRE el importe total de la factura extrapolado a 12 meses como coste_actual_anual. NUNCA recalcules cuánto "debería" costar la tarifa actual — usa el importe real pagado.
+3. CÁLCULO DEL AHORRO: ahorro_anual = coste_actual_anual - coste_estimado_nueva_tarifa. El coste_actual_anual es el importe real de la factura anualizado, sin ajustes.
+4. IMPORTANTE: compara SIEMPRE el cliente con tarifas de su mismo tipo de acceso.
    - Cliente 2.0TD → comparar SOLO con tarifas 2.0TD.
-   - Cliente 3.0TD → comparar SOLO con tarifas 3.0TD (Endesa Pyme Simply y TotalEnergies Clásica).
+   - Cliente 3.0TD → comparar SOLO con tarifas 3.0TD (Endesa Pyme Simply, Endesa Pyme Open Plana y TotalEnergies Clásica).
    - Cliente gas RL1/RL2/RL3 → comparar con su tipo de acceso de gas.
    NUNCA compares un 3.0TD contra tarifas 2.0TD ni viceversa.
 4. Calcula el coste estimado con CADA tarifa disponible para el tipo de acceso del cliente.
 5. OPCIONES (devuelve las 3 mejores ordenadas por mayor ahorro):
    - Para 2.0TD: incluir solo tarifas de PRECIO FIJO (excluir Plenitude POWER/POWER+ y Gana Precio Mercado de las posiciones 1-3 salvo que sean las únicas). Calcular con cada tarifa fija disponible.
-   - Para 3.0TD: calcular con Endesa Pyme Simply y TotalEnergies Clásica.
+   - Para 3.0TD: calcular con Endesa Pyme Simply, Endesa Pyme Open Plana y TotalEnergies Clásica.
    - Para gas: calcular con todas las tarifas del mismo tipo de acceso (RL1, RL2 o RL3).
    - Si hay menos de 3 tarifas distintas: devuelve las que haya con posiciones 1, 2, 3.
    - Si la compañía actual ya es la más barata: ahorro_anual = 0 en todas las opciones, indicarlo en advertencias.
@@ -154,8 +162,8 @@ export default async function handler(req, res) {
     const allowed = [
       "empresa_actual", "tarifa_actual", "tipo_acceso", "tipo_suministro",
       "consumo_anual_kwh", "coste_actual_anual", "coste_actual_mensual",
-      "precio_energia_kwh_actual", "permanencia",
-      "opciones", "advertencias",
+      "precio_energia_kwh_actual", "potencia_p1_kw", "potencia_p2_kw", "permanencia",
+      "fecha_fin_contrato", "opciones", "advertencias",
     ];
     const safe = {};
     for (const k of allowed) {
@@ -168,6 +176,7 @@ export default async function handler(req, res) {
         coste_anual_estimado: op.coste_anual_estimado ?? null,
         ahorro_anual: op.ahorro_anual ?? 0,
         ahorro_mensual: op.ahorro_mensual ?? 0,
+        precio_energia_kwh_estimado: op.precio_energia_kwh_estimado ?? null,
         nota: op.nota ?? null,
       }));
     }
