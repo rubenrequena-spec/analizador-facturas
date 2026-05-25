@@ -32,7 +32,7 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'linear-gradient(160deg, #e3f5f3 0%, #f5f7f6 60%)',
+      background: 'linear-gradient(160deg, #dcfce7 0%, #f0fdf4 40%, #ffffff 100%)',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       padding: 20,
     }}>
@@ -42,7 +42,7 @@ export default function LoginPage() {
         boxShadow: '0 4px 32px rgba(27,45,38,0.10)',
       }}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <img src="/logo.png" alt="Finanzas Healthy" style={{ height: 64, width: 'auto', marginBottom: 16 }} />
+          <img src="/assets/logo-finanzas-healthy.png" alt="Finanzas Healthy" style={{ height: 52, width: 'auto', marginBottom: 16, objectFit: 'contain' }} />
           <h1 style={{ fontSize: 22, fontWeight: 800, color: '#1B2D26', marginBottom: 6 }}>
             Acceso Comerciales
           </h1>
@@ -68,7 +68,7 @@ export default function LoginPage() {
                 color: '#1B2D26', background: '#F5F7F6',
                 transition: 'border-color 0.15s',
               }}
-              onFocus={e => e.target.style.borderColor = '#6DC462'}
+              onFocus={e => e.target.style.borderColor = '#22c55e'}
               onBlur={e => e.target.style.borderColor = '#D8E8E4'}
             />
           </div>
@@ -89,7 +89,7 @@ export default function LoginPage() {
                 color: '#1B2D26', background: '#F5F7F6',
                 transition: 'border-color 0.15s',
               }}
-              onFocus={e => e.target.style.borderColor = '#6DC462'}
+              onFocus={e => e.target.style.borderColor = '#22c55e'}
               onBlur={e => e.target.style.borderColor = '#D8E8E4'}
             />
           </div>
@@ -108,7 +108,7 @@ export default function LoginPage() {
             type="submit"
             disabled={loading}
             style={{
-              width: '100%', background: loading ? '#94a3b8' : '#4A9E40',
+              width: '100%', background: loading ? '#94a3b8' : '#16a34a',
               color: 'white', border: 'none', padding: '14px', borderRadius: 12,
               fontSize: 15, fontWeight: 700, cursor: loading ? 'not-allowed' : 'pointer',
               transition: 'background 0.2s',

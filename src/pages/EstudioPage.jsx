@@ -14,9 +14,16 @@ function limpiarTexto(txt) {
 }
 
 const LOADING_MSGS = [
-  'Leyendo tu factura...',
+  'Leyendo la factura...',
   'Comparando con todas las tarifas...',
   'Calculando comisiones...',
+  'Preparando el informe...',
+]
+
+const LOADING_MSGS_MANUAL = [
+  'Procesando los datos...',
+  'Calculando con tarifas actuales...',
+  'Buscando la mejor opción...',
   'Preparando el informe...',
 ]
 
@@ -31,6 +38,7 @@ function ResultadoAnalisis({ data, estudioId, onGuardado }) {
   const [nombreProyecto, setNombreProyecto] = useState('')
   const [estado, setEstado] = useState('borrador')
   const [guardado, setGuardado] = useState(false)
+  const [numeroGuardado, setNumeroGuardado] = useState(null)
 
   const c = data.cliente || {}
   const rec = data.recomendacion || {}
@@ -41,7 +49,27 @@ function ResultadoAnalisis({ data, estudioId, onGuardado }) {
   const precioKwhActual = c.precio_energia_kwh ? Number(c.precio_energia_kwh).toFixed(4) : null
   const nuevoCosto = (c.coste_actual_anual_con_iva && rec.ahorro) ? Math.round(c.coste_actual_anual_con_iva - rec.ahorro) : null
   const costeMensualNuevo = nuevoCosto ? Math.round(nuevoCosto / 12) : null
-  const precioKwhNuevo = (nuevoCosto && c.consumo_anual_kwh) ? (nuevoCosto / c.consumo_anual_kwh).toFixed(3) : null
+  const ahorroMensual = rec.ahorro ? Math.round(rec.ahorro / 12) : null
+
+  // Opción recomendada para obtener los precios de la nueva tarifa
+  const opcionRec = opciones.find(o =>
+    o.compania === rec.compania && o.tarifa === rec.tarifa
+  ) || opciones[0]
+  const precioKwhNuevo = opcionRec?.precio_energia_kwh_estimado
+    ? Number(opcionRec.precio_energia_kwh_estimado).toFixed(4)
+    : null
+
+  // Autorellenar desde nombre_cliente extraído de la factura
+  useEffect(() => {
+    if (c.nombre_cliente && !clienteNombre) {
+      setClienteNombre(c.nombre_cliente)
+    }
+    if (!nombreProyecto) {
+      const base = c.nombre_cliente || c.empresa_actual || ''
+      const tipo = c.tipo_suministro === 'gas' ? 'Gas' : 'Luz'
+      if (base) setNombreProyecto(`Análisis ${tipo} — ${base}`)
+    }
+  }, [c.nombre_cliente, c.empresa_actual, c.tipo_suministro])
 
   function handleGuardar() {
     const estudio = {
@@ -52,9 +80,10 @@ function ResultadoAnalisis({ data, estudioId, onGuardado }) {
       analisis: data,
       estado,
     }
-    saveEstudio(estudio)
+    const saved = saveEstudio(estudio)
     setGuardado(true)
-    if (onGuardado) onGuardado(estudio)
+    setNumeroGuardado(saved?.numero || null)
+    if (onGuardado) onGuardado(saved || estudio)
   }
 
   function generarMensaje() {
@@ -87,69 +116,119 @@ ${ahorroLinea}
 
   function buildClientReport() {
     const tipo = c.tipo_suministro === 'gas' ? '🔥 Gas' : '⚡ Luz'
+    const logoUrl = 'https://app.finanzashealthy.com/assets/logo-finanzas-healthy.png'
     const html = `<!DOCTYPE html>
-<html lang="es">
+<html lang="es" style="-webkit-print-color-adjust:exact;print-color-adjust:exact">
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Informe energético — Finanzas Healthy</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F5F7F6; color: #1B2D26; padding: 24px; }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #F5F7F6; color: #1B2D26; padding: 24px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .header { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; }
+  .header img { height: 36px; object-fit: contain; }
+  .header-text h1 { font-size: 17px; font-weight: 800; }
+  .header-text p { font-size: 12px; color: #527870; margin-top: 2px; }
   .card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 16px; border: 1px solid #D8E8E4; }
   .badge { display: inline-block; background: #FEF2D5; color: #7a5520; font-size: 10px; font-weight: 700; padding: 3px 8px; border-radius: 6px; margin-bottom: 10px; }
   .row { display: flex; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid #F0F4F3; font-size: 14px; }
   .row:last-child { border-bottom: none; }
   .label { color: #527870; }
   .val { font-weight: 600; }
-  .rec { background: linear-gradient(135deg, #3A9890, #6DC462); color: white; border-radius: 16px; padding: 20px; margin-bottom: 16px; }
-  .rec-title { font-size: 10px; opacity: 0.75; font-weight: 700; text-transform: uppercase; margin-bottom: 6px; }
-  .rec-name { font-size: 20px; font-weight: 800; margin-bottom: 4px; }
-  .rec-tarifa { font-size: 13px; opacity: 0.85; margin-bottom: 14px; }
-  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .rec { background: #16a34a; color: white; border-radius: 16px; padding: 20px; margin-bottom: 16px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rec-badge { display: inline-block; background: rgba(255,255,255,0.2); font-size: 9px; font-weight: 700; text-transform: uppercase; padding: 3px 8px; border-radius: 20px; margin-bottom: 8px; letter-spacing: 0.5px; }
+  .rec-name { font-size: 20px; font-weight: 800; margin-bottom: 2px; }
+  .rec-tarifa { font-size: 13px; opacity: 0.85; margin-bottom: 4px; }
+  .rec-sub { font-size: 11px; opacity: 0.7; margin-bottom: 14px; }
+  .compare-row { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.15); border-radius: 10px; padding: 12px; margin-bottom: 10px; }
+  .compare-col { flex: 1; text-align: center; }
+  .compare-label { font-size: 9px; opacity: 0.7; margin-bottom: 3px; }
+  .compare-val { font-size: 16px; font-weight: 800; }
+  .compare-val.old { text-decoration: line-through; opacity: 0.6; font-size: 14px; }
+  .compare-arrow { font-size: 18px; opacity: 0.5; }
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
   .stat { background: rgba(255,255,255,0.18); border-radius: 10px; padding: 12px; }
   .stat-l { font-size: 10px; opacity: 0.75; margin-bottom: 4px; }
   .stat-v { font-size: 20px; font-weight: 800; }
-  .motivo { font-size: 12px; opacity: 0.85; margin-top: 12px; padding-top: 12px; border-top: 1px solid rgba(255,255,255,0.2); }
-  .nota { font-size: 11px; color: #7a5520; background: #FEF2D5; border-radius: 10px; padding: 12px; margin-top: 12px; }
-  h1 { font-size: 18px; font-weight: 800; margin-bottom: 4px; }
-  p.sub { font-size: 13px; color: #527870; margin-bottom: 20px; }
+  .price-row { display: flex; gap: 8px; margin-bottom: 10px; }
+  .price-box { flex: 1; background: rgba(255,255,255,0.12); border-radius: 8px; padding: 8px 10px; text-align: center; }
+  .price-box .pl { font-size: 9px; opacity: 0.7; margin-bottom: 2px; }
+  .price-box .pv { font-size: 13px; font-weight: 700; }
+  .price-box .pv.strike { text-decoration: line-through; opacity: 0.6; font-size: 12px; }
+  .motivo { font-size: 12px; opacity: 0.85; margin-top: 10px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.2); }
+  .nota { font-size: 11px; color: #7a5520; background: #FEF2D5; border-radius: 10px; padding: 12px; margin-top: 12px; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  @media print {
+    * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; color-adjust: exact !important; }
+    body { padding: 16px; }
+  }
 </style>
 </head>
-<body>
-<h1>🌿 Informe Energético</h1>
-<p class="sub">Elaborado por Finanzas Healthy</p>
+<body style="-webkit-print-color-adjust:exact;print-color-adjust:exact">
+<div class="header">
+  <img src="${logoUrl}" alt="Finanzas Healthy" onerror="this.style.display='none'"/>
+  <div class="header-text">
+    <h1>Informe Energético</h1>
+    <p>Análisis personalizado · Finanzas Healthy</p>
+  </div>
+</div>
+
+${c.nombre_cliente ? `<div style="font-size:13px;color:#527870;margin-bottom:16px">Titular: <strong style="color:#1B2D26">${c.nombre_cliente}</strong></div>` : ''}
 
 <div class="card">
   <div class="badge">SITUACIÓN ACTUAL</div>
   <div class="row"><span class="label">Compañía</span><span class="val">${c.empresa_actual || '—'}</span></div>
-  <div class="row"><span class="label">Tipo de suministro</span><span class="val">${tipo} · ${c.tipo_acceso || '—'}</span></div>
+  ${c.tarifa_actual ? `<div class="row"><span class="label">Tarifa</span><span class="val">${c.tarifa_actual}</span></div>` : ''}
+  <div class="row"><span class="label">Suministro</span><span class="val">${tipo} · ${c.tipo_acceso || '—'}</span></div>
   <div class="row"><span class="label">Consumo anual</span><span class="val">${c.consumo_anual_kwh ? c.consumo_anual_kwh.toLocaleString('es-ES') + ' kWh' : '—'}</span></div>
-  ${c.potencia_p1_kw ? `<div class="row"><span class="label">Potencia contratada</span><span class="val">${c.potencia_p1_kw} kW</span></div>` : ''}
-  ${precioKwhActual ? `<div class="row"><span class="label">Precio energía/kWh</span><span class="val">${precioKwhActual} €/kWh</span></div>` : ''}
+  ${c.potencia_p1_kw ? `<div class="row"><span class="label">Potencia P1</span><span class="val">${c.potencia_p1_kw} kW</span></div>` : ''}
+  ${c.potencia_p2_kw ? `<div class="row"><span class="label">Potencia P2</span><span class="val">${c.potencia_p2_kw} kW</span></div>` : ''}
+  ${precioKwhActual ? `<div class="row"><span class="label">Precio energía actual</span><span class="val">${precioKwhActual} €/kWh</span></div>` : ''}
   <div class="row"><span class="label">Coste actual/año</span><span class="val" style="color:#E8655D;font-size:17px">${fmt(c.coste_actual_anual_con_iva)}</span></div>
   ${costeMensualActual ? `<div class="row"><span class="label">Equivalente mensual</span><span class="val">≈ ${fmt(costeMensualActual)}/mes</span></div>` : ''}
   ${c.permanencia ? `<div class="row"><span class="label">Permanencia</span><span class="val" style="color:#E8655D">⚠️ Sí, hasta ${c.permanencia}</span></div>` : ''}
 </div>
 
-${rec.compania ? `<div class="rec">
-  <div class="rec-title">⭐ RECOMENDACIÓN PARA TI</div>
+${rec.compania ? `<div class="rec" style="-webkit-print-color-adjust:exact;print-color-adjust:exact;background:#16a34a">
+  <div class="rec-badge">⭐ RECOMENDACIÓN FINANZAS HEALTHY</div>
   <div class="rec-name">${rec.compania}</div>
   <div class="rec-tarifa">${rec.tarifa || ''}</div>
+  <div class="rec-sub">Mejor equilibrio entre ahorro y condiciones</div>
+
+  <div class="compare-row">
+    <div class="compare-col">
+      <div class="compare-label">Pagas ahora</div>
+      <div class="compare-val old">${fmt(c.coste_actual_anual_con_iva)}/año</div>
+      ${costeMensualActual ? `<div style="font-size:10px;opacity:0.55">≈ ${fmt(costeMensualActual)}/mes</div>` : ''}
+    </div>
+    <div class="compare-arrow">→</div>
+    <div class="compare-col">
+      <div class="compare-label">Nuevo coste estimado</div>
+      <div class="compare-val">${fmt(nuevoCosto)}/año</div>
+      ${costeMensualNuevo ? `<div style="font-size:10px;opacity:0.75">≈ ${fmt(costeMensualNuevo)}/mes</div>` : ''}
+    </div>
+  </div>
+
   <div class="stat-grid">
+    <div class="stat">
+      <div class="stat-l">Ahorro estimado/mes</div>
+      <div class="stat-v">${fmt(ahorroMensual)}</div>
+    </div>
     <div class="stat">
       <div class="stat-l">Ahorro estimado/año</div>
       <div class="stat-v">${fmt(rec.ahorro)}</div>
     </div>
-    ${nuevoCosto ? `<div class="stat">
-      <div class="stat-l">Nuevo coste estimado</div>
-      <div class="stat-v">${fmt(nuevoCosto)}/año</div>
-    </div>` : ''}
   </div>
+
+  ${(precioKwhActual || precioKwhNuevo) ? `<div class="price-row">
+    ${precioKwhActual ? `<div class="price-box"><div class="pl">Precio energía actual</div><div class="pv strike">${precioKwhActual} €/kWh</div></div>` : ''}
+    ${precioKwhNuevo ? `<div class="price-box"><div class="pl">Precio energía nueva</div><div class="pv">${precioKwhNuevo} €/kWh</div></div>` : ''}
+  </div>` : ''}
+
   ${rec.motivo ? `<div class="motivo">${limpiarTexto(rec.motivo)}</div>` : ''}
 </div>` : ''}
 
-<div class="nota">⚠️ Los datos son estimados basados en la factura analizada. El ahorro real puede variar según el perfil de consumo real y condiciones del contrato.</div>
+<div class="nota">⚠️ Los datos son estimados basados en la factura analizada. El ahorro real puede variar según el perfil de consumo y condiciones del contrato. El cambio de compañía es gratuito y lo gestionamos nosotros.</div>
 </body>
 </html>`
     const blob = new Blob([html], { type: 'text/html' })
@@ -164,11 +243,13 @@ ${rec.compania ? `<div class="rec">
     background: 'white', borderRadius: 16, padding: '18px 20px',
     marginBottom: 14, border: '1px solid #D8E8E4',
   }
-
   const rowStyle = {
     display: 'flex', justifyContent: 'space-between', alignItems: 'center',
     padding: '7px 0', borderBottom: '1px solid #F0F4F3', fontSize: 13,
   }
+
+  // Índice de la opción recomendada en la lista
+  const idxRec = opciones.findIndex(o => o.compania === rec.compania && o.tarifa === rec.tarifa)
 
   return (
     <div>
@@ -178,8 +259,8 @@ ${rec.compania ? `<div class="rec">
           onClick={() => setShowComisiones(!showComisiones)}
           title={showComisiones ? 'Ocultar comisiones' : 'Mostrar comisiones'}
           style={{
-            background: showComisiones ? '#EBF8EA' : 'white',
-            border: `1.5px solid ${showComisiones ? '#4A9E40' : '#D8E8E4'}`,
+            background: showComisiones ? '#dcfce7' : 'white',
+            border: `1.5px solid ${showComisiones ? '#16a34a' : '#D8E8E4'}`,
             borderRadius: '50%', width: 36, height: 36, cursor: 'pointer',
             fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}
@@ -196,11 +277,19 @@ ${rec.compania ? `<div class="rec">
         }}>
           SITUACIÓN ACTUAL
         </div>
+        {c.nombre_cliente && (
+          <div style={{ ...rowStyle }}>
+            <span style={{ color: '#527870' }}>Titular</span>
+            <span style={{ fontWeight: 700 }}>{c.nombre_cliente}</span>
+          </div>
+        )}
         {[
           ['Compañía', c.empresa_actual || '—'],
+          c.tarifa_actual ? ['Tarifa actual', c.tarifa_actual] : null,
           ['Tipo', `${c.tipo_suministro === 'gas' ? '🔥 Gas' : '⚡ Luz'} · ${c.tipo_acceso || '—'}`],
           ['Consumo anual', c.consumo_anual_kwh ? c.consumo_anual_kwh.toLocaleString('es-ES') + ' kWh' : '—'],
-          c.potencia_p1_kw ? ['Potencia', c.potencia_p1_kw + ' kW'] : null,
+          c.potencia_p1_kw ? ['Potencia P1', c.potencia_p1_kw + ' kW'] : null,
+          c.potencia_p2_kw ? ['Potencia P2', c.potencia_p2_kw + ' kW'] : null,
           precioKwhActual ? ['Precio energía/kWh', precioKwhActual + ' €/kWh'] : null,
         ].filter(Boolean).map(([label, val]) => (
           <div key={label} style={rowStyle}>
@@ -210,7 +299,7 @@ ${rec.compania ? `<div class="rec">
         ))}
         <div style={rowStyle}>
           <span style={{ color: '#527870' }}>Permanencia</span>
-          <span style={{ fontWeight: 600, color: c.permanencia ? '#E8655D' : '#4A9E40' }}>
+          <span style={{ fontWeight: 600, color: c.permanencia ? '#E8655D' : '#16a34a' }}>
             {c.permanencia ? `⚠️ Sí · hasta ${c.permanencia}` : '✓ NO'}
           </span>
         </div>
@@ -231,15 +320,17 @@ ${rec.compania ? `<div class="rec">
       {/* Recomendación */}
       {rec.compania && (
         <div style={{
-          background: 'linear-gradient(135deg, #3A9890, #6DC462)',
+          background: '#16a34a',
           color: 'white', borderRadius: 16, padding: '18px 20px', marginBottom: 14,
         }}>
-          <div style={{ fontSize: 10, fontWeight: 700, opacity: 0.75, textTransform: 'uppercase', marginBottom: 6 }}>
-            ⭐ RECOMENDACIÓN
+          <div style={{ fontSize: 9, fontWeight: 700, opacity: 0.8, textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 6 }}>
+            ⭐ RECOMENDACIÓN FINANZAS HEALTHY
           </div>
-          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 3 }}>{rec.compania}</div>
-          <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 14 }}>{rec.tarifa}</div>
+          <div style={{ fontSize: 20, fontWeight: 800, marginBottom: 2 }}>{rec.compania}</div>
+          <div style={{ fontSize: 13, opacity: 0.85, marginBottom: 2 }}>{rec.tarifa}</div>
+          <div style={{ fontSize: 11, opacity: 0.65, marginBottom: 14 }}>Mejor equilibrio entre ahorro y rentabilidad</div>
 
+          {/* Comparativa coste actual → nuevo */}
           {nuevoCosto && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12,
@@ -247,14 +338,14 @@ ${rec.compania ? `<div class="rec">
             }}>
               <div style={{ textAlign: 'center', flex: 1 }}>
                 <div style={{ fontSize: 10, opacity: 0.75, marginBottom: 2 }}>Paga ahora</div>
-                <div style={{ fontSize: 16, fontWeight: 700, textDecoration: 'line-through', opacity: 0.7 }}>
+                <div style={{ fontSize: 15, fontWeight: 700, textDecoration: 'line-through', opacity: 0.65 }}>
                   {fmt(c.coste_actual_anual_con_iva)}
                 </div>
                 {costeMensualActual && (
-                  <div style={{ fontSize: 10, opacity: 0.6 }}>≈ {fmt(costeMensualActual)}/mes</div>
+                  <div style={{ fontSize: 10, opacity: 0.55 }}>≈ {fmt(costeMensualActual)}/mes</div>
                 )}
               </div>
-              <div style={{ fontSize: 20, opacity: 0.6 }}>→</div>
+              <div style={{ fontSize: 20, opacity: 0.5 }}>→</div>
               <div style={{ textAlign: 'center', flex: 1 }}>
                 <div style={{ fontSize: 10, opacity: 0.75, marginBottom: 2 }}>Nuevo coste/año</div>
                 <div style={{ fontSize: 20, fontWeight: 800 }}>{fmt(nuevoCosto)}</div>
@@ -265,42 +356,46 @@ ${rec.compania ? `<div class="rec">
             </div>
           )}
 
-          {precioKwhActual && precioKwhNuevo && (
+          {/* Ahorro mensual + anual */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 12 }}>
+            <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 10, opacity: 0.75, marginBottom: 4 }}>Ahorro/mes estimado</div>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>{fmt(ahorroMensual)}</div>
+            </div>
+            <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 10, padding: 12 }}>
+              <div style={{ fontSize: 10, opacity: 0.75, marginBottom: 4 }}>Ahorro/año estimado</div>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>{fmt(rec.ahorro)}</div>
+            </div>
+          </div>
+
+          {/* Comparativa precios kWh */}
+          {(precioKwhActual || precioKwhNuevo) && (
             <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
-              {[
-                ['Precio actual/kWh', precioKwhActual + ' €', true],
-                ['Precio nuevo/kWh', precioKwhNuevo + ' €', false],
-              ].map(([label, val, strikethrough]) => (
-                <div key={label} style={{
-                  flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 8,
-                  padding: '7px 10px', textAlign: 'center',
-                }}>
-                  <div style={{ fontSize: 9, opacity: 0.7, marginBottom: 2 }}>{label}</div>
-                  <div style={{ fontSize: 13, fontWeight: 700, textDecoration: strikethrough ? 'line-through' : 'none', opacity: strikethrough ? 0.7 : 1 }}>
-                    {val}
-                  </div>
+              {precioKwhActual && (
+                <div style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 8, padding: '7px 10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 9, opacity: 0.7, marginBottom: 2 }}>Precio energía actual</div>
+                  <div style={{ fontSize: 13, fontWeight: 700, textDecoration: 'line-through', opacity: 0.65 }}>{precioKwhActual} €/kWh</div>
                 </div>
-              ))}
+              )}
+              {precioKwhNuevo && (
+                <div style={{ flex: 1, background: 'rgba(255,255,255,0.12)', borderRadius: 8, padding: '7px 10px', textAlign: 'center' }}>
+                  <div style={{ fontSize: 9, opacity: 0.7, marginBottom: 2 }}>Precio energía nueva</div>
+                  <div style={{ fontSize: 13, fontWeight: 700 }}>{precioKwhNuevo} €/kWh</div>
+                </div>
+              )}
             </div>
           )}
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-            <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 10, padding: 12 }}>
-              <div style={{ fontSize: 10, opacity: 0.75, marginBottom: 4 }}>Ahorro cliente/año</div>
-              <div style={{ fontSize: 20, fontWeight: 800 }}>{fmt(rec.ahorro)}</div>
+          {/* Comisiones (internas) */}
+          {showComisiones && (
+            <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 10, padding: 12, marginBottom: 12 }}>
+              <div style={{ fontSize: 10, opacity: 0.75, marginBottom: 4 }}>Rentabilidad aprox.</div>
+              <div style={{ fontSize: 18, fontWeight: 800 }}>{fmt(rec.comision)}</div>
             </div>
-            {showComisiones && (
-              <div style={{ background: 'rgba(255,255,255,0.18)', borderRadius: 10, padding: 12 }}>
-                <div style={{ fontSize: 10, opacity: 0.75, marginBottom: 4 }}>Rentabilidad aprox.</div>
-                <div style={{ fontSize: 20, fontWeight: 800 }}>{fmt(rec.comision)}</div>
-              </div>
-            )}
-          </div>
+          )}
+
           {rec.motivo && (
-            <div style={{
-              fontSize: 12, opacity: 0.85, marginTop: 12, paddingTop: 12,
-              borderTop: '1px solid rgba(255,255,255,0.2)',
-            }}>
+            <div style={{ fontSize: 12, opacity: 0.85, marginTop: 8, paddingTop: 10, borderTop: '1px solid rgba(255,255,255,0.2)' }}>
               {limpiarTexto(rec.motivo)}
             </div>
           )}
@@ -314,7 +409,8 @@ ${rec.compania ? `<div class="rec">
             Todas las opciones
           </div>
           {opciones.map((op, i) => {
-            const esTop = i === 0
+            const esRecomendada = i === idxRec
+            const esMejorAhorro = i === 0 && !esRecomendada
             const ahorroPos = op.ahorro_anual > 0
             const costeMensualOp = op.coste_anual_estimado ? Math.round(op.coste_anual_estimado / 12) : null
             const retroLabel = op.retrocomision_meses_sin_riesgo != null
@@ -325,15 +421,15 @@ ${rec.compania ? `<div class="rec">
             return (
               <div key={i} style={{
                 background: 'white', borderRadius: 16, padding: '14px 18px', marginBottom: 10,
-                border: esTop ? '2px solid #4A9E40' : '1px solid #D8E8E4',
+                border: esRecomendada ? '2px solid #16a34a' : '1px solid #D8E8E4',
               }}>
                 <span style={{
                   display: 'inline-block', fontSize: 10, fontWeight: 700, padding: '3px 10px',
                   borderRadius: 20, marginBottom: 8,
-                  background: esTop ? '#4A9E40' : '#D8E8E4',
-                  color: esTop ? 'white' : '#527870',
+                  background: esRecomendada ? '#16a34a' : esMejorAhorro ? '#D8E8E4' : '#F5F7F6',
+                  color: esRecomendada ? 'white' : esMejorAhorro ? '#527870' : '#94a3b8',
                 }}>
-                  {esTop ? '🏆 Mejor ahorro' : `#${op.posicion}`}
+                  {esRecomendada ? '⭐ Recomendada' : esMejorAhorro ? '🏆 Mejor ahorro' : `#${op.posicion}`}
                 </span>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 10 }}>
                   <div>
@@ -341,14 +437,14 @@ ${rec.compania ? `<div class="rec">
                     <div style={{ fontSize: 12, color: '#527870', marginTop: 2 }}>{op.tarifa}</div>
                   </div>
                   <span style={{
-                    background: ahorroPos ? '#EBF8EA' : '#FDEAE9',
-                    color: ahorroPos ? '#4A9E40' : '#E8655D',
+                    background: ahorroPos ? '#dcfce7' : '#FDEAE9',
+                    color: ahorroPos ? '#16a34a' : '#E8655D',
                     fontSize: 14, fontWeight: 800, padding: '5px 10px', borderRadius: 10,
                   }}>
                     {ahorroPos ? '+' : ''}{fmt(op.ahorro_anual)}
                   </span>
                 </div>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div style={{ display: 'grid', gridTemplateColumns: showComisiones ? '1fr 1fr 1fr' : '1fr 1fr', gap: 8 }}>
                   <div style={{ background: '#F5F7F6', borderRadius: 10, padding: 9 }}>
                     <div style={{ fontSize: 10, color: '#527870', marginBottom: 2 }}>Coste est./año</div>
                     <div style={{ fontSize: 14, fontWeight: 700 }}>{fmt(op.coste_anual_estimado)}</div>
@@ -356,10 +452,15 @@ ${rec.compania ? `<div class="rec">
                       <div style={{ fontSize: 10, color: '#527870', marginTop: 2 }}>≈ {fmt(costeMensualOp)}/mes</div>
                     )}
                   </div>
+                  <div style={{ background: '#F5F7F6', borderRadius: 10, padding: 9 }}>
+                    <div style={{ fontSize: 10, color: '#527870', marginBottom: 2 }}>Ahorro/año</div>
+                    <div style={{ fontSize: 14, fontWeight: 700, color: ahorroPos ? '#16a34a' : '#E8655D' }}>{fmt(op.ahorro_anual)}</div>
+                    {op.ahorro_anual ? <div style={{ fontSize: 10, color: '#527870', marginTop: 2 }}>≈ {fmt(Math.round(op.ahorro_anual / 12))}/mes</div> : null}
+                  </div>
                   {showComisiones && (
                     <div style={{ background: '#F5F7F6', borderRadius: 10, padding: 9 }}>
-                      <div style={{ fontSize: 10, color: '#527870', marginBottom: 2 }}>Rentabilidad aprox.</div>
-                      <div style={{ fontSize: 14, fontWeight: 700, color: '#4A9E40' }}>{fmt(op.comision_total)}</div>
+                      <div style={{ fontSize: 10, color: '#527870', marginBottom: 2 }}>Rentabilidad</div>
+                      <div style={{ fontSize: 14, fontWeight: 700, color: '#16a34a' }}>{fmt(op.comision_total)}</div>
                     </div>
                   )}
                 </div>
@@ -396,10 +497,7 @@ ${rec.compania ? `<div class="rec">
             <span style={{ fontSize: 11, transition: 'transform 0.25s', display: 'inline-block', transform: showAdvertencias ? 'rotate(180deg)' : 'none' }}>▼</span>
           </button>
           {showAdvertencias && (
-            <div style={{
-              background: '#FEF2D5', border: '1px solid #e6d5a8', borderTop: 'none',
-              borderRadius: '0 0 10px 10px', overflow: 'hidden',
-            }}>
+            <div style={{ background: '#FEF2D5', border: '1px solid #e6d5a8', borderTop: 'none', borderRadius: '0 0 10px 10px', overflow: 'hidden' }}>
               {advertencias.map((av, i) => (
                 <div key={i} style={{
                   fontSize: 12, color: '#7a5520', padding: '9px 14px',
@@ -420,14 +518,11 @@ ${rec.compania ? `<div class="rec">
         background: '#FEF2D5', border: '1px solid #e6d5a8', borderRadius: 10,
         padding: '10px 14px', marginBottom: 16, fontSize: 11, color: '#7a5520', lineHeight: 1.5,
       }}>
-        ⚠️ <strong>Datos estimados.</strong> Los cálculos se basan en los datos de esta factura y pueden variar según el perfil de consumo real. Las rentabilidades comerciales son aproximadas.
+        ⚠️ <strong>Datos estimados.</strong> Los cálculos se basan en los datos de esta factura y pueden variar según el perfil de consumo real.
       </div>
 
       {/* Guardar estudio */}
-      <div style={{
-        background: 'white', borderRadius: 16, padding: '18px 20px',
-        border: '1px solid #D8E8E4', marginBottom: 14,
-      }}>
+      <div style={{ background: 'white', borderRadius: 16, padding: '18px 20px', border: '1px solid #D8E8E4', marginBottom: 14 }}>
         <div style={{ fontSize: 13, fontWeight: 700, color: '#1B2D26', marginBottom: 14 }}>
           💾 Guardar estudio
         </div>
@@ -440,10 +535,7 @@ ${rec.compania ? `<div class="rec">
               value={clienteNombre}
               onChange={e => setClienteNombre(e.target.value)}
               placeholder="Ej: Juan García"
-              style={{
-                width: '100%', padding: '10px 12px', borderRadius: 8,
-                border: '1.5px solid #D8E8E4', fontSize: 13, outline: 'none',
-              }}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #D8E8E4', fontSize: 13, outline: 'none' }}
             />
           </div>
           <div>
@@ -453,18 +545,15 @@ ${rec.compania ? `<div class="rec">
             <select
               value={clienteId}
               onChange={e => {
-                const sel = clientes.find(c => c.id === e.target.value)
+                const sel = clientes.find(cl => cl.id === e.target.value)
                 setClienteId(e.target.value)
                 if (sel) setClienteNombre(sel.nombre)
               }}
-              style={{
-                width: '100%', padding: '10px 12px', borderRadius: 8,
-                border: '1.5px solid #D8E8E4', fontSize: 13, outline: 'none', background: 'white',
-              }}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #D8E8E4', fontSize: 13, outline: 'none', background: 'white' }}
             >
               <option value="">— Nuevo cliente —</option>
-              {clientes.map(c => (
-                <option key={c.id} value={c.id}>{c.nombre}{c.empresa ? ` (${c.empresa})` : ''}</option>
+              {clientes.map(cl => (
+                <option key={cl.id} value={cl.id}>{cl.nombre}{cl.empresa ? ` (${cl.empresa})` : ''}</option>
               ))}
             </select>
           </div>
@@ -478,10 +567,7 @@ ${rec.compania ? `<div class="rec">
               value={nombreProyecto}
               onChange={e => setNombreProyecto(e.target.value)}
               placeholder="Ej: Factura luz oct 2024"
-              style={{
-                width: '100%', padding: '10px 12px', borderRadius: 8,
-                border: '1.5px solid #D8E8E4', fontSize: 13, outline: 'none',
-              }}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #D8E8E4', fontSize: 13, outline: 'none' }}
             />
           </div>
           <div>
@@ -491,10 +577,7 @@ ${rec.compania ? `<div class="rec">
             <select
               value={estado}
               onChange={e => setEstado(e.target.value)}
-              style={{
-                width: '100%', padding: '10px 12px', borderRadius: 8,
-                border: '1.5px solid #D8E8E4', fontSize: 13, outline: 'none', background: 'white',
-              }}
+              style={{ width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #D8E8E4', fontSize: 13, outline: 'none', background: 'white' }}
             >
               <option value="borrador">Borrador</option>
               <option value="enviado">Enviado</option>
@@ -508,7 +591,7 @@ ${rec.compania ? `<div class="rec">
           onClick={handleGuardar}
           disabled={!clienteNombre || !nombreProyecto}
           style={{
-            width: '100%', background: (!clienteNombre || !nombreProyecto) ? '#94a3b8' : '#4A9E40',
+            width: '100%', background: (!clienteNombre || !nombreProyecto) ? '#94a3b8' : '#16a34a',
             color: 'white', border: 'none', padding: '12px', borderRadius: 10,
             fontSize: 14, fontWeight: 700, cursor: (!clienteNombre || !nombreProyecto) ? 'not-allowed' : 'pointer',
           }}
@@ -516,8 +599,8 @@ ${rec.compania ? `<div class="rec">
           {guardado ? '✓ Guardado' : '💾 Guardar estudio'}
         </button>
         {guardado && (
-          <p style={{ textAlign: 'center', fontSize: 12, color: '#4A9E40', marginTop: 8, fontWeight: 600 }}>
-            Estudio guardado correctamente
+          <p style={{ textAlign: 'center', fontSize: 12, color: '#16a34a', marginTop: 8, fontWeight: 600 }}>
+            Estudio {numeroGuardado ? `#${String(numeroGuardado).padStart(3, '0')}` : ''} guardado correctamente
           </p>
         )}
       </div>
@@ -526,10 +609,7 @@ ${rec.compania ? `<div class="rec">
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 10 }}>
         <button
           onClick={buildClientReport}
-          style={{
-            background: 'white', border: '1.5px solid #D8E8E4', borderRadius: 12,
-            padding: 13, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#1B2D26',
-          }}
+          style={{ background: 'white', border: '1.5px solid #D8E8E4', borderRadius: 12, padding: 13, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#1B2D26' }}
         >
           📄 PDF para cliente
         </button>
@@ -538,10 +618,7 @@ ${rec.compania ? `<div class="rec">
             const msg = generarMensaje()
             window.open('https://wa.me/?text=' + encodeURIComponent(msg), '_blank')
           }}
-          style={{
-            background: '#25D366', color: 'white', border: 'none',
-            borderRadius: 12, padding: 13, fontSize: 13, fontWeight: 600, cursor: 'pointer',
-          }}
+          style={{ background: '#25D366', color: 'white', border: 'none', borderRadius: 12, padding: 13, fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
         >
           💬 WhatsApp
         </button>
@@ -554,66 +631,79 @@ ${rec.compania ? `<div class="rec">
 function FormularioManual({ onResultado }) {
   const [form, setForm] = useState({
     companiaActual: '', tipoAcceso: '2.0TD', tipoSuministro: 'electricidad',
-    potenciaP1: '', potenciaP2: '', consumoAnual: '', costeActualAnual: '', precioEnergiaKwh: '',
+    potenciaP1: '', potenciaP2: '',
+    consumoAnual: '', costeActualAnual: '',
+    precioEnergiaKwh: '', precioPotenciaP1: '', precioPotenciaP2: '',
   })
+  const [loading, setLoading] = useState(false)
+  const [loadingMsg, setLoadingMsg] = useState(0)
+  const [error, setError] = useState('')
 
   function set(key, val) { setForm(f => ({ ...f, [key]: val })) }
 
-  function calcular() {
-    const consumo = parseFloat(form.consumoAnual) || 0
-    const coste = parseFloat(form.costeActualAnual) || 0
-    const precio = parseFloat(form.precioEnergiaKwh) || (coste && consumo ? coste / consumo : 0)
+  useEffect(() => {
+    if (!loading) return
+    const interval = setInterval(() => setLoadingMsg(m => (m + 1) % LOADING_MSGS_MANUAL.length), 1500)
+    return () => clearInterval(interval)
+  }, [loading])
 
-    const ahorroEstimado = coste * 0.15
-    const nuevoCoste = coste - ahorroEstimado
-
-    const resultado = {
-      cliente: {
-        empresa_actual: form.companiaActual || 'Desconocida',
-        tipo_acceso: form.tipoAcceso,
-        tipo_suministro: form.tipoSuministro,
-        potencia_p1_kw: parseFloat(form.potenciaP1) || null,
-        potencia_p2_kw: parseFloat(form.potenciaP2) || null,
-        consumo_anual_kwh: consumo,
-        coste_actual_anual_con_iva: coste,
-        precio_energia_kwh: precio ? parseFloat(precio.toFixed(4)) : null,
-        permanencia: null,
-      },
-      recomendacion: {
-        compania: 'Oferta orientativa',
-        tarifa: 'Basado en tu perfil de consumo',
-        ahorro: Math.round(ahorroEstimado),
-        comision: Math.round(ahorroEstimado * 0.5),
-        motivo: 'Estimación orientativa basada en los datos introducidos. Sube la factura para un análisis preciso.',
-      },
-      opciones: [
-        {
-          posicion: 1,
-          compania: 'Oferta estimada',
-          tarifa: form.tipoAcceso,
-          coste_anual_estimado: Math.round(nuevoCoste),
-          ahorro_anual: Math.round(ahorroEstimado),
-          comision_total: Math.round(ahorroEstimado * 0.5),
-          retrocomision_meses_sin_riesgo: null,
-          nota: 'Estimación orientativa — sube la factura real para un análisis preciso con tarifas actualizadas.',
-        },
-      ],
-      advertencias: ['Este análisis es una estimación basada en datos introducidos manualmente. Para un análisis preciso, sube la factura real.'],
+  async function calcular() {
+    if (!form.consumoAnual || !form.costeActualAnual) return
+    setLoading(true)
+    setError('')
+    try {
+      const res = await fetch('/api/analyze-manual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          companiaActual: form.companiaActual,
+          tipoAcceso: form.tipoAcceso,
+          tipoSuministro: form.tipoSuministro,
+          potenciaP1: form.potenciaP1 ? parseFloat(form.potenciaP1) : null,
+          potenciaP2: form.potenciaP2 ? parseFloat(form.potenciaP2) : null,
+          consumoAnual: parseFloat(form.consumoAnual),
+          costeActualAnual: parseFloat(form.costeActualAnual),
+          precioEnergiaKwh: form.precioEnergiaKwh ? parseFloat(form.precioEnergiaKwh) : null,
+          precioPotenciaP1: form.precioPotenciaP1 ? parseFloat(form.precioPotenciaP1) : null,
+          precioPotenciaP2: form.precioPotenciaP2 ? parseFloat(form.precioPotenciaP2) : null,
+        }),
+      })
+      if (!res.ok) {
+        const b = await res.json().catch(() => ({}))
+        throw new Error(b.details || b.error || `Error ${res.status}`)
+      }
+      const data = await res.json()
+      onResultado(data)
+    } catch (err) {
+      setError(err.message || 'Error al conectar con el servidor.')
+    } finally {
+      setLoading(false)
     }
-    onResultado(resultado)
   }
 
-  const inputStyle = {
-    width: '100%', padding: '10px 12px', borderRadius: 8,
-    border: '1.5px solid #D8E8E4', fontSize: 13, outline: 'none', background: 'white',
-  }
-  const labelStyle = {
-    display: 'block', fontSize: 12, fontWeight: 600, color: '#527870', marginBottom: 5,
-  }
+  const inputStyle = { width: '100%', padding: '10px 12px', borderRadius: 8, border: '1.5px solid #D8E8E4', fontSize: 13, outline: 'none', background: 'white' }
+  const labelStyle = { display: 'block', fontSize: 12, fontWeight: 600, color: '#527870', marginBottom: 5 }
   const groupStyle = { marginBottom: 14 }
+
+  if (loading) {
+    return (
+      <div style={{ textAlign: 'center', padding: '36px 20px' }}>
+        <div style={{ width: 40, height: 40, border: '4px solid #dcfce7', borderTopColor: '#16a34a', borderRadius: '50%', margin: '0 auto 14px', animation: 'spin 0.8s linear infinite' }} />
+        <p style={{ fontSize: 14, fontWeight: 600, color: '#1B2D26', marginBottom: 4 }}>{LOADING_MSGS_MANUAL[loadingMsg]}</p>
+        <p style={{ fontSize: 12, color: '#527870' }}>Calculando con tarifas reales...</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    )
+  }
 
   return (
     <div>
+      {error && (
+        <div style={{ background: '#FDEAE9', borderRadius: 10, padding: '10px 14px', marginBottom: 14, fontSize: 13, color: '#7f1d1d' }}>
+          ⚠️ {error}
+          <button onClick={() => setError('')} style={{ marginLeft: 10, background: 'none', border: 'none', cursor: 'pointer', color: '#E8655D', fontWeight: 700 }}>✕</button>
+        </div>
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
         <div style={groupStyle}>
           <label style={labelStyle}>Compañía actual</label>
@@ -635,40 +725,51 @@ function FormularioManual({ onResultado }) {
           </select>
         </div>
         <div style={groupStyle}>
-          <label style={labelStyle}>Potencia P1 (kW)</label>
+          <label style={labelStyle}>Potencia P1 contratada (kW)</label>
           <input type="number" value={form.potenciaP1} onChange={e => set('potenciaP1', e.target.value)} placeholder="Ej: 5.75" style={inputStyle} />
         </div>
         {['2.0TD', '3.0TD'].includes(form.tipoAcceso) && (
           <div style={groupStyle}>
-            <label style={labelStyle}>Potencia P2 (kW)</label>
+            <label style={labelStyle}>Potencia P2 contratada (kW)</label>
             <input type="number" value={form.potenciaP2} onChange={e => set('potenciaP2', e.target.value)} placeholder="Ej: 5.75" style={inputStyle} />
           </div>
         )}
         <div style={groupStyle}>
-          <label style={labelStyle}>Consumo anual (kWh)</label>
+          <label style={labelStyle}>Consumo anual (kWh) *</label>
           <input type="number" value={form.consumoAnual} onChange={e => set('consumoAnual', e.target.value)} placeholder="Ej: 3500" style={inputStyle} />
         </div>
         <div style={groupStyle}>
-          <label style={labelStyle}>Coste actual anual (€)</label>
+          <label style={labelStyle}>Coste actual anual con IVA (€) *</label>
           <input type="number" value={form.costeActualAnual} onChange={e => set('costeActualAnual', e.target.value)} placeholder="Ej: 850" style={inputStyle} />
         </div>
         <div style={groupStyle}>
-          <label style={labelStyle}>Precio energía/kWh actual (€)</label>
+          <label style={labelStyle}>Precio energía actual (€/kWh)</label>
           <input type="number" step="0.0001" value={form.precioEnergiaKwh} onChange={e => set('precioEnergiaKwh', e.target.value)} placeholder="Ej: 0.1850" style={inputStyle} />
         </div>
+        <div style={groupStyle}>
+          <label style={labelStyle}>Precio potencia P1 actual (€/kW/año)</label>
+          <input type="number" step="0.01" value={form.precioPotenciaP1} onChange={e => set('precioPotenciaP1', e.target.value)} placeholder="Ej: 38.70" style={inputStyle} />
+        </div>
+        {['2.0TD', '3.0TD'].includes(form.tipoAcceso) && (
+          <div style={groupStyle}>
+            <label style={labelStyle}>Precio potencia P2 actual (€/kW/año)</label>
+            <input type="number" step="0.01" value={form.precioPotenciaP2} onChange={e => set('precioPotenciaP2', e.target.value)} placeholder="Ej: 11.73" style={inputStyle} />
+          </div>
+        )}
       </div>
       <button
         onClick={calcular}
         disabled={!form.consumoAnual || !form.costeActualAnual}
         style={{
-          width: '100%', background: (!form.consumoAnual || !form.costeActualAnual) ? '#94a3b8' : '#4A9E40',
+          width: '100%', background: (!form.consumoAnual || !form.costeActualAnual) ? '#94a3b8' : '#16a34a',
           color: 'white', border: 'none', padding: '14px', borderRadius: 12,
           fontSize: 15, fontWeight: 700, cursor: (!form.consumoAnual || !form.costeActualAnual) ? 'not-allowed' : 'pointer',
           marginTop: 4,
         }}
       >
-        Calcular ahorro estimado
+        ⚡ Calcular con tarifas reales
       </button>
+      <p style={{ textAlign: 'center', fontSize: 11, color: '#94a3b8', marginTop: 8 }}>* Campos obligatorios</p>
     </div>
   )
 }
@@ -681,19 +782,16 @@ export default function EstudioPage() {
   const [analisis, setAnalisis] = useState(null)
   const [estudioExistente, setEstudioExistente] = useState(null)
 
-  // Drag & drop / file upload
   const [file, setFile] = useState(null)
   const [base64, setBase64] = useState(null)
   const [mediaType, setMediaType] = useState(null)
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef(null)
 
-  // Loading
   const [loading, setLoading] = useState(false)
   const [loadingMsg, setLoadingMsg] = useState(0)
   const [error, setError] = useState('')
 
-  // Cargar estudio existente si viene de /estudio/:id
   useEffect(() => {
     if (id) {
       const estudios = getEstudios()
@@ -705,12 +803,9 @@ export default function EstudioPage() {
     }
   }, [id])
 
-  // Rotación de mensajes de carga
   useEffect(() => {
     if (!loading) return
-    const interval = setInterval(() => {
-      setLoadingMsg(m => (m + 1) % LOADING_MSGS.length)
-    }, 1500)
+    const interval = setInterval(() => setLoadingMsg(m => (m + 1) % LOADING_MSGS.length), 1500)
     return () => clearInterval(interval)
   }, [loading])
 
@@ -764,7 +859,7 @@ export default function EstudioPage() {
   const tabStyle = (active) => ({
     flex: 1, padding: '10px 16px', border: 'none', borderRadius: 10,
     fontSize: 13, fontWeight: 600, cursor: 'pointer',
-    background: active ? '#4A9E40' : 'transparent',
+    background: active ? '#16a34a' : 'transparent',
     color: active ? 'white' : '#527870',
     transition: 'all 0.15s',
   })
@@ -780,6 +875,11 @@ export default function EstudioPage() {
             ← Volver a estudios
           </button>
           <span style={{ color: '#D8E8E4' }}>|</span>
+          {estudioExistente.numero && (
+            <span style={{ fontSize: 12, fontWeight: 700, color: '#16a34a' }}>
+              #{String(estudioExistente.numero).padStart(3, '0')}
+            </span>
+          )}
           <span style={{ fontSize: 13, fontWeight: 600, color: '#1B2D26' }}>
             {estudioExistente.nombre || 'Estudio sin nombre'}
           </span>
@@ -791,23 +891,15 @@ export default function EstudioPage() {
 
       {/* Tabs */}
       {!analisis && (
-        <div style={{
-          display: 'flex', gap: 6, background: '#F5F7F6', borderRadius: 12,
-          padding: 5, marginBottom: 20, border: '1px solid #D8E8E4',
-        }}>
-          <button style={tabStyle(tab === 'factura')} onClick={() => setTab('factura')}>
-            📄 Subir factura
-          </button>
-          <button style={tabStyle(tab === 'manual')} onClick={() => setTab('manual')}>
-            ✏️ Manual
-          </button>
+        <div style={{ display: 'flex', gap: 6, background: '#F5F7F6', borderRadius: 12, padding: 5, marginBottom: 20, border: '1px solid #D8E8E4' }}>
+          <button style={tabStyle(tab === 'factura')} onClick={() => setTab('factura')}>📄 Subir factura</button>
+          <button style={tabStyle(tab === 'manual')} onClick={() => setTab('manual')}>✏️ Manual</button>
         </div>
       )}
 
       {/* Modo factura */}
       {!analisis && tab === 'factura' && (
         <>
-          {/* Zona drag & drop */}
           {!file ? (
             <div
               onDragOver={e => { e.preventDefault(); setDragOver(true) }}
@@ -815,70 +907,40 @@ export default function EstudioPage() {
               onDrop={handleDrop}
               onClick={() => fileInputRef.current?.click()}
               style={{
-                background: dragOver ? '#EBF8EA' : 'white',
-                border: `2px dashed ${dragOver ? '#6DC462' : '#D8E8E4'}`,
+                background: dragOver ? '#dcfce7' : 'white',
+                border: `2px dashed ${dragOver ? '#16a34a' : '#D8E8E4'}`,
                 borderRadius: 16, padding: '40px 24px', textAlign: 'center',
                 cursor: 'pointer', marginBottom: 16, transition: 'all 0.2s',
               }}
             >
               <span style={{ fontSize: 48, display: 'block', marginBottom: 14 }}>📄</span>
-              <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 6, color: '#1B2D26' }}>
-                Sube la factura del cliente
-              </h2>
-              <p style={{ fontSize: 13, color: '#527870', marginBottom: 20 }}>
-                PDF o foto · Luz o gas · Cualquier compañía
-              </p>
+              <h2 style={{ fontSize: 17, fontWeight: 700, marginBottom: 6, color: '#1B2D26' }}>Sube la factura del cliente</h2>
+              <p style={{ fontSize: 13, color: '#527870', marginBottom: 20 }}>PDF o foto · Luz o gas · Cualquier compañía</p>
               <button
                 onClick={e => { e.stopPropagation(); fileInputRef.current?.click() }}
-                style={{
-                  background: '#4A9E40', color: 'white', border: 'none',
-                  padding: '13px 24px', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer',
-                }}
+                style={{ background: '#16a34a', color: 'white', border: 'none', padding: '13px 24px', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer' }}
               >
                 📄 Seleccionar factura
               </button>
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept="image/*,application/pdf"
-                style={{ display: 'none' }}
-                onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]) }}
-              />
+              <input ref={fileInputRef} type="file" accept="image/*,application/pdf" style={{ display: 'none' }} onChange={e => { if (e.target.files[0]) handleFile(e.target.files[0]) }} />
             </div>
           ) : (
-            <div style={{
-              background: 'white', borderRadius: 16, padding: 14, marginBottom: 16,
-              display: 'flex', alignItems: 'center', gap: 12, border: '1px solid #D8E8E4',
-            }}>
-              <div style={{
-                width: 52, height: 52, borderRadius: 10, background: '#F5F7F6',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0,
-              }}>
+            <div style={{ background: 'white', borderRadius: 16, padding: 14, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 12, border: '1px solid #D8E8E4' }}>
+              <div style={{ width: 52, height: 52, borderRadius: 10, background: '#F5F7F6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 24, flexShrink: 0 }}>
                 {file.type.startsWith('image/') ? '🖼️' : '📄'}
               </div>
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                  {file.name}
-                </div>
+                <div style={{ fontSize: 13, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{file.name}</div>
                 <div style={{ fontSize: 11, color: '#527870' }}>{formatSize(file.size)}</div>
               </div>
-              <button
-                onClick={() => { setFile(null); setBase64(null); setError('') }}
-                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#527870', padding: 4 }}
-              >
-                ✕
-              </button>
+              <button onClick={() => { setFile(null); setBase64(null); setError('') }} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 18, color: '#527870', padding: 4 }}>✕</button>
             </div>
           )}
 
           {file && !loading && (
             <button
               onClick={analizarFactura}
-              style={{
-                width: '100%', background: '#4A9E40', color: 'white', border: 'none',
-                padding: 15, borderRadius: 14, fontSize: 16, fontWeight: 700,
-                cursor: 'pointer', marginBottom: 24,
-              }}
+              style={{ width: '100%', background: '#16a34a', color: 'white', border: 'none', padding: 15, borderRadius: 14, fontSize: 16, fontWeight: 700, cursor: 'pointer', marginBottom: 24 }}
             >
               ⚡ Analizar factura
             </button>
@@ -889,43 +951,28 @@ export default function EstudioPage() {
       {/* Modo manual */}
       {!analisis && tab === 'manual' && (
         <div style={{ background: 'white', borderRadius: 16, padding: '20px', border: '1px solid #D8E8E4', marginBottom: 16 }}>
-          <FormularioManual onResultado={data => { setAnalisis(data); }} />
+          <FormularioManual onResultado={data => setAnalisis(data)} />
         </div>
       )}
 
-      {/* Loading */}
+      {/* Loading factura */}
       {loading && (
         <div style={{ textAlign: 'center', padding: '48px 20px' }}>
-          <div style={{
-            width: 44, height: 44,
-            border: '4px solid #EBF8EA', borderTopColor: '#4A9E40',
-            borderRadius: '50%', margin: '0 auto 16px',
-            animation: 'spin 0.8s linear infinite',
-          }} />
-          <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 5, color: '#1B2D26' }}>
-            {LOADING_MSGS[loadingMsg]}
-          </h3>
-          <p style={{ fontSize: 13, color: '#527870' }}>
-            Analizando con inteligencia artificial...
-          </p>
+          <div style={{ width: 44, height: 44, border: '4px solid #dcfce7', borderTopColor: '#16a34a', borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} />
+          <h3 style={{ fontSize: 15, fontWeight: 600, marginBottom: 5, color: '#1B2D26' }}>{LOADING_MSGS[loadingMsg]}</h3>
+          <p style={{ fontSize: 13, color: '#527870' }}>Analizando con inteligencia artificial...</p>
           <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
         </div>
       )}
 
       {/* Error */}
       {error && !loading && (
-        <div style={{
-          background: '#FDEAE9', borderRadius: 16, padding: 18, marginBottom: 16, textAlign: 'center',
-        }}>
+        <div style={{ background: '#FDEAE9', borderRadius: 16, padding: 18, marginBottom: 16, textAlign: 'center' }}>
           <h3 style={{ color: '#E8655D', fontSize: 15, marginBottom: 6 }}>⚠️ No se pudo analizar</h3>
           <p style={{ color: '#7f1d1d', fontSize: 13 }}>{error}</p>
           <button
             onClick={() => { setError(''); setFile(null); setBase64(null) }}
-            style={{
-              marginTop: 12, background: 'white', border: '1px solid #E8655D',
-              color: '#E8655D', borderRadius: 8, padding: '8px 16px', fontSize: 13,
-              fontWeight: 600, cursor: 'pointer',
-            }}
+            style={{ marginTop: 12, background: 'white', border: '1px solid #E8655D', color: '#E8655D', borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}
           >
             Intentar de nuevo
           </button>
@@ -938,10 +985,7 @@ export default function EstudioPage() {
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 14 }}>
             <button
               onClick={() => { setAnalisis(null); setFile(null); setBase64(null); setError('') }}
-              style={{
-                background: '#F5F7F6', border: '1px solid #D8E8E4', borderRadius: 8,
-                padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: '#527870',
-              }}
+              style={{ background: '#F5F7F6', border: '1px solid #D8E8E4', borderRadius: 8, padding: '8px 14px', fontSize: 12, fontWeight: 600, cursor: 'pointer', color: '#527870' }}
             >
               🔄 Nuevo análisis
             </button>

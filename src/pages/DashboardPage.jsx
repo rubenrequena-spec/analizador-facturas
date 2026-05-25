@@ -11,8 +11,8 @@ function fmt(num) {
 const ESTADO_COLORS = {
   borrador: { bg: '#F1F5F9', color: '#64748B' },
   enviado: { bg: '#EFF6FF', color: '#3B82F6' },
-  aceptado: { bg: '#EBF8EA', color: '#4A9E40' },
-  contratado: { bg: '#1B2D26', color: '#6DC462' },
+  aceptado: { bg: '#EBF8EA', color: '#16a34a' },
+  contratado: { bg: '#1B2D26', color: '#22c55e' },
   perdido: { bg: '#FDEAE9', color: '#E8655D' },
 }
 
@@ -54,8 +54,8 @@ export default function DashboardPage() {
 
   const kpis = [
     { label: 'Total estudios', value: estudios.length, icon: '📁', color: '#55B8B0', bg: '#E3F5F3' },
-    { label: 'Este mes', value: estudiosMes.length, icon: '📅', color: '#6DC462', bg: '#EBF8EA' },
-    { label: 'Ahorro total calculado', value: fmt(Math.round(ahorroTotal)), icon: '💰', color: '#4A9E40', bg: '#EBF8EA' },
+    { label: 'Este mes', value: estudiosMes.length, icon: '📅', color: '#22c55e', bg: '#EBF8EA' },
+    { label: 'Ahorro total calculado', value: fmt(Math.round(ahorroTotal)), icon: '💰', color: '#16a34a', bg: '#EBF8EA' },
     { label: 'Comisiones estimadas', value: fmt(Math.round(comisionTotal)), icon: '📈', color: '#3A9890', bg: '#E3F5F3' },
   ]
 
@@ -73,7 +73,7 @@ export default function DashboardPage() {
         <button
           onClick={() => navigate('/estudio/nuevo')}
           style={{
-            background: '#4A9E40', color: 'white', border: 'none',
+            background: '#16a34a', color: 'white', border: 'none',
             padding: '12px 20px', borderRadius: 12, fontSize: 14,
             fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 8,
           }}
@@ -128,7 +128,7 @@ export default function DashboardPage() {
             <button
               onClick={() => navigate('/estudio/nuevo')}
               style={{
-                background: '#4A9E40', color: 'white', border: 'none',
+                background: '#16a34a', color: 'white', border: 'none',
                 padding: '12px 24px', borderRadius: 10, fontSize: 14,
                 fontWeight: 700, cursor: 'pointer',
               }}
@@ -177,7 +177,7 @@ export default function DashboardPage() {
                       <td style={{ padding: '12px 16px', fontSize: 13, color: '#527870' }}>
                         {e.analisis ? tipo : '—'}
                       </td>
-                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#4A9E40' }}>
+                      <td style={{ padding: '12px 16px', fontSize: 13, fontWeight: 700, color: '#16a34a' }}>
                         {ahorro ? `+${fmt(Math.round(ahorro))}` : '—'}
                       </td>
                       <td style={{ padding: '12px 16px' }}>

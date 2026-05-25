@@ -72,7 +72,7 @@ export default function Layout() {
       }} className="sidebar">
         {/* Logo */}
         <div style={{ padding: '20px 18px 16px', borderBottom: '1px solid rgba(255,255,255,0.08)' }}>
-          <img src="/logo.png" alt="Finanzas Healthy" style={{ height: 36, width: 'auto' }} />
+          <img src="/assets/logo-finanzas-healthy.png" alt="Finanzas Healthy" style={{ height: 32, width: 'auto', objectFit: 'contain' }} />
         </div>
 
         {/* Nav */}
@@ -91,9 +91,9 @@ export default function Layout() {
                 textDecoration: 'none',
                 fontSize: 14,
                 fontWeight: 500,
-                borderLeft: isActive ? '3px solid #6DC462' : '3px solid transparent',
+                borderLeft: isActive ? '3px solid #22c55e' : '3px solid transparent',
                 background: isActive ? 'rgba(109,196,98,0.15)' : 'transparent',
-                color: isActive ? '#6DC462' : 'rgba(255,255,255,0.7)',
+                color: isActive ? '#22c55e' : 'rgba(255,255,255,0.7)',
                 transition: 'all 0.15s',
                 marginBottom: 2,
               })}

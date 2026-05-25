@@ -102,7 +102,7 @@ export default function AdminPage() {
                   background: u.rol === 'admin' ? '#1B2D26' : '#E3F5F3',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 16, fontWeight: 700,
-                  color: u.rol === 'admin' ? '#6DC462' : '#3A9890',
+                  color: u.rol === 'admin' ? '#22c55e' : '#3A9890',
                   flexShrink: 0,
                 }}>
                   {(u.nombre || '?')[0].toUpperCase()}
@@ -113,7 +113,7 @@ export default function AdminPage() {
                     <span style={{
                       fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
                       background: u.rol === 'admin' ? '#1B2D26' : '#EBF8EA',
-                      color: u.rol === 'admin' ? '#6DC462' : '#4A9E40',
+                      color: u.rol === 'admin' ? '#22c55e' : '#16a34a',
                     }}>
                       {u.rol}
                     </span>
@@ -194,8 +194,8 @@ export default function AdminPage() {
         )}
         {successMsg && (
           <div style={{
-            background: '#EBF8EA', border: '1px solid #6DC462', borderRadius: 8,
-            padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#4A9E40', fontWeight: 600,
+            background: '#EBF8EA', border: '1px solid #22c55e', borderRadius: 8,
+            padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#16a34a', fontWeight: 600,
           }}>
             ✓ {successMsg}
           </div>
@@ -204,7 +204,7 @@ export default function AdminPage() {
         <button
           onClick={handleCrear}
           style={{
-            width: '100%', background: '#4A9E40', color: 'white', border: 'none',
+            width: '100%', background: '#16a34a', color: 'white', border: 'none',
             padding: '12px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
           }}
         >

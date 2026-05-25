@@ -11,6 +11,13 @@ export function getEstudios() {
   }
 }
 
+function getNextNumero() {
+  const estudios = getEstudios()
+  if (estudios.length === 0) return 1
+  const max = estudios.reduce((m, e) => (e.numero && e.numero > m ? e.numero : m), 0)
+  return max + 1
+}
+
 export function saveEstudio(estudio) {
   const estudios = getEstudios()
   const idx = estudios.findIndex(e => e.id === estudio.id)
@@ -18,8 +25,10 @@ export function saveEstudio(estudio) {
   if (idx >= 0) {
     estudios[idx] = { ...estudio, updatedAt: now }
   } else {
+    const numero = estudio.numero || getNextNumero()
     estudios.unshift({
       id: estudio.id || 'estudio-' + Date.now(),
+      numero,
       nombre: estudio.nombre || '',
       clienteNombre: estudio.clienteNombre || '',
       clienteId: estudio.clienteId || null,
@@ -27,7 +36,8 @@ export function saveEstudio(estudio) {
       estado: estudio.estado || 'borrador',
       createdAt: now,
       updatedAt: now,
-      ...estudio
+      ...estudio,
+      numero,
     })
   }
   localStorage.setItem(ESTUDIOS_KEY, JSON.stringify(estudios))

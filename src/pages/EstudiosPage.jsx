@@ -12,8 +12,8 @@ const ESTADOS = ['todos', 'borrador', 'enviado', 'aceptado', 'contratado', 'perd
 const ESTADO_COLORS = {
   borrador: { bg: '#F1F5F9', color: '#64748B' },
   enviado: { bg: '#EFF6FF', color: '#3B82F6' },
-  aceptado: { bg: '#EBF8EA', color: '#4A9E40' },
-  contratado: { bg: '#1B2D26', color: '#6DC462' },
+  aceptado: { bg: '#EBF8EA', color: '#16a34a' },
+  contratado: { bg: '#1B2D26', color: '#22c55e' },
   perdido: { bg: '#FDEAE9', color: '#E8655D' },
 }
 
@@ -70,7 +70,7 @@ export default function EstudiosPage() {
         <button
           onClick={() => navigate('/estudio/nuevo')}
           style={{
-            background: '#4A9E40', color: 'white', border: 'none',
+            background: '#16a34a', color: 'white', border: 'none',
             padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer',
             whiteSpace: 'nowrap',
           }}
@@ -123,7 +123,7 @@ export default function EstudiosPage() {
             <button
               onClick={() => navigate('/estudio/nuevo')}
               style={{
-                background: '#4A9E40', color: 'white', border: 'none',
+                background: '#16a34a', color: 'white', border: 'none',
                 padding: '12px 24px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
               }}
             >
@@ -137,7 +137,7 @@ export default function EstudiosPage() {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#F5F7F6' }}>
-                  {['Cliente', 'Proyecto', 'Tipo', 'Ahorro/año', 'Comisión', 'Estado', 'Fecha', 'Acciones'].map(h => (
+                  {['#', 'Cliente', 'Proyecto', 'Tipo', 'Ahorro/año', 'Comisión', 'Estado', 'Fecha', 'Acciones'].map(h => (
                     <th key={h} style={{
                       padding: '10px 14px', textAlign: 'left', fontSize: 11,
                       fontWeight: 700, color: '#527870', textTransform: 'uppercase',
@@ -158,6 +158,9 @@ export default function EstudiosPage() {
                       key={e.id}
                       style={{ borderTop: i > 0 ? '1px solid #F0F4F3' : 'none' }}
                     >
+                      <td style={{ padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>
+                        {e.numero ? `#${String(e.numero).padStart(3, '0')}` : '—'}
+                      </td>
                       <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 600, color: '#1B2D26' }}>
                         {e.clienteNombre || '—'}
                       </td>
@@ -169,7 +172,7 @@ export default function EstudiosPage() {
                       <td style={{ padding: '12px 14px', fontSize: 13, color: '#527870', whiteSpace: 'nowrap' }}>
                         {tipo}
                       </td>
-                      <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 700, color: '#4A9E40', whiteSpace: 'nowrap' }}>
+                      <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>
                         {ahorro ? `+${fmt(Math.round(ahorro))}` : '—'}
                       </td>
                       <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 700, color: '#3A9890', whiteSpace: 'nowrap' }}>

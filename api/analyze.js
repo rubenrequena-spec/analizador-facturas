@@ -6,6 +6,7 @@ const SYSTEM_PROMPT = `Eres el asesor energético interno de Finanzas Healthy, e
 SIEMPRE responde en formato JSON con esta estructura exacta:
 {
   "cliente": {
+    "nombre_cliente": "nombre completo del titular del contrato extraído de la factura, o null si no aparece",
     "empresa_actual": "nombre de la compañía actual",
     "tarifa_actual": "nombre de la tarifa",
     "tipo_acceso": "2.0TD / 3.0TD / 6.1TD / RL1 / RL2 / RL3",
@@ -25,6 +26,9 @@ SIEMPRE responde en formato JSON con esta estructura exacta:
       "tarifa": "nombre tarifa",
       "coste_anual_estimado": número,
       "ahorro_anual": número,
+      "precio_energia_kwh_estimado": número o null (precio de energía €/kWh SIN potencia ni impuestos de esta tarifa),
+      "precio_potencia_p1": número o null (precio del término de potencia P1 en €/kW/año de esta tarifa),
+      "precio_potencia_p2": número o null (precio del término de potencia P2 en €/kW/año, o null si no aplica),
       "comision_total": número,
       "retrocomision_meses_sin_riesgo": número,
       "nota": "condición relevante si la hay"
@@ -59,7 +63,9 @@ ${BLOQUE_TARIFAS_INTERNO}
     - Si dice "NO", "Sin permanencia" o similar → permanencia = null.
     - Si dice "SÍ" o muestra una fecha de penalización por cancelación anticipada → pon esa fecha en formato legible (ej: 'ene 2027').
     - CRÍTICO: la "fecha fin de contrato" o "fecha vencimiento de contrato" NO es permanencia. Una factura puede tener fecha fin de contrato sin penalización. Solo marca permanencia si el campo explícito "Permanencia" indica SÍ.
-12. PRECIO ENERGÍA: Extrae el precio medio de energía en €/kWh del desglose de factura (solo término de energía, sin potencia ni impuestos). Para 3.0TD calcula la media ponderada de P1..P6 según el consumo de cada periodo. Para 2.0TD usa el precio de energía plano. Devuélvelo en "precio_energia_kwh" con 4 decimales.`;
+12. PRECIO ENERGÍA: Extrae el precio medio de energía en €/kWh del desglose de factura (solo término de energía, sin potencia ni impuestos). Para 3.0TD calcula la media ponderada de P1..P6 según el consumo de cada periodo. Para 2.0TD usa el precio de energía plano. Devuélvelo en "precio_energia_kwh" con 4 decimales.
+13. NOMBRE CLIENTE: Extrae el nombre completo del titular del contrato de la factura (suele aparecer en la cabecera o en los datos del cliente). Devuélvelo en "nombre_cliente". Si no aparece, devuelve null.
+14. PRECIOS POR OPCIÓN: Para cada opción en el array "opciones", incluye "precio_energia_kwh_estimado" (precio de energía de esa tarifa en €/kWh sin potencia ni impuestos, extraído del bloque de tarifas), "precio_potencia_p1" y "precio_potencia_p2" (término de potencia P1 y P2 en €/kW/año de esa tarifa). Usa los valores exactos del bloque de tarifas.`;
 
 export default async function handler(req, res) {
   // CORS — permite llamadas desde la web pública y la app de comerciales

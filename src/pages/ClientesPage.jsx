@@ -52,7 +52,7 @@ export default function ClientesPage() {
         <button
           onClick={() => { setShowForm(!showForm); setErrForm('') }}
           style={{
-            background: '#4A9E40', color: 'white', border: 'none',
+            background: '#16a34a', color: 'white', border: 'none',
             padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer',
           }}
         >
@@ -104,7 +104,7 @@ export default function ClientesPage() {
             <button
               onClick={handleGuardar}
               style={{
-                flex: 2, background: '#4A9E40', border: 'none',
+                flex: 2, background: '#16a34a', border: 'none',
                 borderRadius: 10, padding: '10px', fontSize: 13, fontWeight: 700,
                 cursor: 'pointer', color: 'white',
               }}
@@ -128,7 +128,7 @@ export default function ClientesPage() {
           <button
             onClick={() => setShowForm(true)}
             style={{
-              background: '#4A9E40', color: 'white', border: 'none',
+              background: '#16a34a', color: 'white', border: 'none',
               padding: '12px 24px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
             }}
           >
@@ -173,7 +173,7 @@ export default function ClientesPage() {
                       background: numEstudios > 0 ? '#EBF8EA' : '#F5F7F6',
                       border: 'none', borderRadius: 8, padding: '6px 10px',
                       fontSize: 12, fontWeight: 700,
-                      color: numEstudios > 0 ? '#4A9E40' : '#527870', cursor: 'pointer',
+                      color: numEstudios > 0 ? '#16a34a' : '#527870', cursor: 'pointer',
                     }}
                   >
                     📁 {numEstudios} estudio{numEstudios !== 1 ? 's' : ''}
