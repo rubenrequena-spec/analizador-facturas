@@ -41,8 +41,8 @@ SIEMPRE responde en formato JSON con esta estructura exacta:
 }
 ${BLOQUE_TARIFAS_INTERNO}
 === INSTRUCCIONES DE CÁLCULO ===
-1. Extrae todos los datos de la factura. Si no aparece el consumo anual, calcula desde el periodo de la factura.
-2. Si no aparece el coste actual anual, calcula desde el importe de la factura.
+1. Extrae todos los datos de la factura. Si no aparece el consumo anual, extrapola desde el periodo facturado (kWh_periodo × 365 / días_periodo).
+2. COSTE ACTUAL: usa SIEMPRE el importe total de la factura extrapolado a 12 meses como coste_actual_anual_con_iva. NUNCA recalcules cuánto "debería" costar la tarifa actual — usa el importe real pagado.
 3. Calcula el coste con CADA tarifa disponible para el tipo de acceso del cliente.
 4. Ordena las opciones por ahorro (mayor ahorro = posición 1).
 5. REGLA DE RECOMENDACIÓN:
