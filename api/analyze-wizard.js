@@ -10,6 +10,7 @@ IMPORTANTE: NO incluyas los nombres de las compañías en las opciones. El clien
 
 SIEMPRE responde en formato JSON con esta estructura exacta (sin texto adicional):
 {
+  "nombre_cliente": "nombre completo del titular del contrato extraído de la factura, o null si no aparece",
   "empresa_actual": "nombre de la compañía actual",
   "tarifa_actual": "nombre de la tarifa actual o null",
   "tipo_acceso": "2.0TD / 3.0TD / 6.1TD / RL1 / RL2 / RL3",
@@ -121,7 +122,7 @@ export default async function handler(req, res) {
 
     // Filtro de seguridad — nunca devolver nombres de compañías en opciones ni datos internos
     const allowed = [
-      "empresa_actual", "tarifa_actual", "tipo_acceso", "tipo_suministro",
+      "nombre_cliente", "empresa_actual", "tarifa_actual", "tipo_acceso", "tipo_suministro",
       "consumo_anual_kwh", "coste_actual_anual", "coste_actual_mensual",
       "precio_energia_kwh_actual", "precio_potencia_p1_actual", "precio_potencia_p2_actual",
       "potencia_p1_kw", "potencia_p2_kw", "permanencia",
