@@ -1,4 +1,5 @@
 import Anthropic from "@anthropic-ai/sdk";
+import { BLOQUE_TARIFAS_PUBLICO } from "./tarifas.js";
 
 // Endpoint público para el wizard — mismas tarifas que la app de comerciales
 // pero SIN datos internos (comisiones, retrocomisiones, etc.)
@@ -17,6 +18,8 @@ SIEMPRE responde en formato JSON con esta estructura exacta (sin texto adicional
   "coste_actual_anual": número (coste anual CON IVA),
   "coste_actual_mensual": número (coste mensual medio CON IVA),
   "precio_energia_kwh_actual": número o null (precio medio de energía SIN potencia ni impuestos, extraído del desglose),
+  "precio_potencia_p1_actual": número o null (precio del término de potencia P1 en €/kW/año de la tarifa actual, extraído de la factura),
+  "precio_potencia_p2_actual": número o null (precio del término de potencia P2 en €/kW/año de la tarifa actual, o null si no aplica),
   "potencia_p1_kw": número o null (potencia contratada P1 en kW, extraída de la factura),
   "potencia_p2_kw": número o null (potencia contratada P2 en kW, o null si tarifa 3.0TD o gas),
   "permanencia": null o "mes año" si hay penalización real por cancelación anticipada,
@@ -24,10 +27,14 @@ SIEMPRE responde en formato JSON con esta estructura exacta (sin texto adicional
   "opciones": [
     {
       "posicion": 1,
+      "companiaInterna": "nombre de la compañía (campo interno, no mostrar al cliente en la UI)",
+      "tarifaInterna": "nombre de la tarifa (campo interno, no mostrar al cliente en la UI)",
       "coste_anual_estimado": número (coste anual estimado CON IVA),
       "ahorro_anual": número (ahorro anual estimado en €),
       "ahorro_mensual": número (ahorro mensual estimado en €),
       "precio_energia_kwh_estimado": número o null (precio de energía €/kWh SIN potencia ni impuestos de la nueva tarifa),
+      "precio_potencia_p1": número o null (precio del término de potencia P1 en €/kW/año de la nueva tarifa),
+      "precio_potencia_p2": número o null (precio del término de potencia P2 en €/kW/año de la nueva tarifa, o null si no aplica),
       "nota": "condición relevante para el cliente (permanencia, precio indexado, etc.) o null"
     },
     { "posicion": 2, ... },
@@ -35,55 +42,7 @@ SIEMPRE responde en formato JSON con esta estructura exacta (sin texto adicional
   ],
   "advertencias": ["solo advertencias técnicas relevantes para el cliente: consumo estimado, periodos incompletos, etc. NUNCA incluir nombres de compañías ni tarifas en este campo"]
 }
-
-=== DATOS DE TARIFAS VIGENTES (Mayo 2026) ===
-
-ELECTRICIDAD 2.0TD — Precios sin IVA ni impuesto eléctrico:
-- Endesa TEMPO:           energía 0,1196 €/kWh | P1: 44,70 €/kW/año | P2: 17,73 €/kW/año (dto 26% año 1)
-- Endesa Simply:          energía 0,1626 €/kWh | P1: 38,70 €/kW/año | P2: 11,73 €/kW/año
-- Endesa Open Plana:      energía 0,1532 €/kWh | P1: 38,70 €/kW/año | P2: 11,73 €/kW/año
-- Gana Energía 24h:       energía 0,1190 €/kWh | P1=P2: 32,64 €/kW/año (solo Península)
-- Gana Precio Mercado:    energía ~precio OMIE | P1: 27,71 €/kW/año | P2: 0,73 €/kW/año
-- Naturgy Por Uso:        energía 0,1099 €/kWh | P1: 44,91 €/kW/año | P2: 13,63 €/kW/año
-- Iberdrola Plan Estable: energía 0,1686 €/kWh | P1: 39,99 €/kW/año | P2: 21,99 €/kW/año
-- Repsol CDR V29:         energía 0,1399 €/kWh | P1=P2: 29,90 €/kW/año
-- Repsol CDR V30:         energía 0,1199 €/kWh | P1=P2: 29,89 €/kW/año
-- Plenitude POWER:        energía indexada pool ~0,204 €/kWh orientativo | P1: 27,71 €/kW/año | P2: 0,73 €/kW/año
-- Plenitude POWER+:       precio orientativo ~0,216 €/kWh
-
-FÓRMULA COSTE ANUAL 2.0TD (sin IVA):
-coste = (P1_kW × P1_€/año) + (P2_kW × P2_€/año) + (kWh × €/kWh)
-Luego: × 1,0511 (impuesto eléctrico 5,11%) × 1,21 (IVA)
-
-ELECTRICIDAD 3.0TD — Precios sin IVA ni impuesto eléctrico:
-- Endesa Pyme Simply:       energía 0,1473 €/kWh (precio único) | P1: 21,877 €/kW/año | P2: 12,118 €/kW/año | P3: 5,982 €/kW/año | P4: 5,386 €/kW/año | P5: 4,014 €/kW/año | P6: 2,942 €/kW/año
-- Endesa Pyme Open Plana:   energía 0,1389 €/kWh (precio único 24h) | P1: 21,877 €/kW/año | P2: 12,118 €/kW/año | P3: 5,982 €/kW/año | P4: 5,386 €/kW/año | P5: 4,014 €/kW/año | P6: 2,942 €/kW/año
-- TotalEnergies Clásica:    energía P1:0,1982 €/kWh | P2:0,1674 €/kWh | P3:0,1275 €/kWh | P4:0,1073 €/kWh | P5:0,0989 €/kWh | P6:0,1118 €/kWh | Potencia P1:20,38 €/kW/año | P2:10,62 €/kW/año | P3:5,24 €/kW/año | P4:4,57 €/kW/año | P5:3,71 €/kW/año | P6:2,94 €/kW/año
-- Iberdrola 3.0TD / Plenitude 3.0TD: sin precios disponibles
-
-FÓRMULA COSTE ANUAL 3.0TD (sin IVA):
-coste = Σ(Pi_kW × precio_Pi_€/kW/año) + Σ(Pi_kWh × precio_Pi_€/kWh)
-Luego: × 1,0511 (impuesto eléctrico) × 1,21 (IVA)
-Si no hay desglose de consumo por periodo: usar el precio único de energía con kWh total. Para la potencia: calcular Σ(Pi_kW × precio_Pi_€/kW/año) usando los kW contratados por periodo que aparecen en la factura (ej: 8/8/8/8/8/17,5 kW → P1:8×21,877 + P2:8×12,118 + ... + P6:17,5×2,942). Indicar "(estimación orientativa)" en advertencias.
-
-GAS — Precios sin IVA ni imp. hidrocarburos (0,00234 €/kWh):
-- Naturgy RL1: 0,07953 €/kWh + 5,15 €/mes fijo
-- Naturgy RL2: 0,07743 €/kWh + 9,15 €/mes fijo
-- Naturgy RL3: 0,07399 €/kWh + 19,76 €/mes fijo
-- Endesa RL1:  0,07443 €/kWh + 7,18 €/mes fijo
-- Endesa RL2:  0,07128 €/kWh + 14,60 €/mes fijo
-- Endesa RL3:  0,0666  €/kWh + 30,67 €/mes fijo
-- Gana RL1:    (coste~0,07€) + 0,011 €/kWh + 3,93 €/mes fijo
-- Gana RL2:    (coste~0,07€) + 0,006 €/kWh + 8,11 €/mes fijo
-- Gana RL3:    (coste~0,07€) + 0,004 €/kWh + 18,82 €/mes fijo
-- Repsol RL1:  0,08990 €/kWh + 6,90 €/mes fijo
-- Repsol RL2:  0,08990 €/kWh + 11,90 €/mes fijo
-- Repsol RL3:  0,08990 €/kWh + 15,90 €/mes fijo
-
-FÓRMULA COSTE ANUAL GAS (sin IVA):
-coste = (fijo_mes × 12) + (kWh × (precio_variable + 0,00234))
-Luego: × 1,21 (IVA)
-
+${BLOQUE_TARIFAS_PUBLICO}
 === REGLAS DE CÁLCULO Y RECOMENDACIÓN ===
 1. Extrae todos los datos de la factura. Si no aparece el consumo anual, extrapola desde el periodo facturado (kWh_periodo × 365 / días_periodo).
 2. COSTE ACTUAL: usa SIEMPRE el importe total de la factura extrapolado a 12 meses como coste_actual_anual. NUNCA recalcules cuánto "debería" costar la tarifa actual — usa el importe real pagado.
@@ -107,8 +66,10 @@ Luego: × 1,21 (IVA)
    - Si dice "SÍ" o hay fecha de penalización por cancelación anticipada → pon esa fecha (ej: 'ene 2027').
    - La "fecha fin de contrato" NO es permanencia.
 9. precio_energia_kwh_actual: precio medio de energía extraído del desglose (solo término energía, sin potencia ni impuestos). Para 3.0TD: media ponderada P1..P6 por consumo.
-10. Campo "nota" en cada opción: indicar si hay permanencia de 1 año, si es precio indexado, o si hay alguna condición relevante para el cliente. null si no hay nada relevante.
-11. NO incluyas nombres de compañías en opciones, ni comisiones, ni datos internos.`;
+10. precio_potencia_p1_actual / precio_potencia_p2_actual: extráelos del desglose de la factura (término de potencia en €/kW/año o €/kW/día × 365). Si la factura no los desglosa, pon null.
+11. precio_potencia_p1 / precio_potencia_p2 en cada opción: usa los precios de potencia de las tarifas del bloque de tarifas (término fijo de potencia). Si la tarifa no tiene término de potencia diferenciado (gas), pon null.
+12. Campo "nota" en cada opción: indicar si hay permanencia de 1 año, si es precio indexado, o si hay alguna condición relevante para el cliente. null si no hay nada relevante.
+13. NO incluyas nombres de compañías en opciones, ni comisiones, ni datos internos.`;
 
 export default async function handler(req, res) {
   // CORS — permite llamadas desde el wizard público
@@ -141,7 +102,7 @@ export default async function handler(req, res) {
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 3000,
+      max_tokens: 4000,
       system: SYSTEM_PROMPT,
       messages: [{
         role: "user",
@@ -162,7 +123,8 @@ export default async function handler(req, res) {
     const allowed = [
       "empresa_actual", "tarifa_actual", "tipo_acceso", "tipo_suministro",
       "consumo_anual_kwh", "coste_actual_anual", "coste_actual_mensual",
-      "precio_energia_kwh_actual", "potencia_p1_kw", "potencia_p2_kw", "permanencia",
+      "precio_energia_kwh_actual", "precio_potencia_p1_actual", "precio_potencia_p2_actual",
+      "potencia_p1_kw", "potencia_p2_kw", "permanencia",
       "fecha_fin_contrato", "opciones", "advertencias",
     ];
     const safe = {};
@@ -173,10 +135,14 @@ export default async function handler(req, res) {
     if (Array.isArray(safe.opciones)) {
       safe.opciones = safe.opciones.slice(0, 3).map((op, i) => ({
         posicion: op.posicion || (i + 1),
+        companiaInterna: op.companiaInterna ?? null,
+        tarifaInterna: op.tarifaInterna ?? null,
         coste_anual_estimado: op.coste_anual_estimado ?? null,
         ahorro_anual: op.ahorro_anual ?? 0,
         ahorro_mensual: op.ahorro_mensual ?? 0,
         precio_energia_kwh_estimado: op.precio_energia_kwh_estimado ?? null,
+        precio_potencia_p1: op.precio_potencia_p1 ?? null,
+        precio_potencia_p2: op.precio_potencia_p2 ?? null,
         nota: op.nota ?? null,
       }));
     }
