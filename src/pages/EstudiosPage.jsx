@@ -1,43 +1,242 @@
-import React, { useState } from 'react'
+import React, { useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { getEstudios, deleteEstudio } from '../store.js'
+import { getEstudios, deleteEstudio, saveEstudio } from '../store.js'
 
 function fmt(num) {
   if (num == null || isNaN(num)) return '—'
   return new Intl.NumberFormat('es-ES', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(num) + ' €'
 }
 
-const ESTADOS = ['todos', 'borrador', 'enviado', 'aceptado', 'contratado', 'perdido']
-
-const ESTADO_COLORS = {
-  borrador: { bg: '#F1F5F9', color: '#64748B' },
-  enviado: { bg: '#EFF6FF', color: '#3B82F6' },
-  aceptado: { bg: '#EBF8EA', color: '#16a34a' },
-  contratado: { bg: '#1B2D26', color: '#22c55e' },
-  perdido: { bg: '#FDEAE9', color: '#E8655D' },
+function timeAgo(isoDate) {
+  if (!isoDate) return ''
+  const diff = Math.floor((Date.now() - new Date(isoDate)) / 1000)
+  if (diff < 60) return 'ahora'
+  if (diff < 3600) return `hace ${Math.floor(diff / 60)}m`
+  if (diff < 86400) return `hace ${Math.floor(diff / 3600)}h`
+  if (diff < 86400 * 7) return `hace ${Math.floor(diff / 86400)}d`
+  return new Date(isoDate).toLocaleDateString('es-ES', { day: 'numeric', month: 'short' })
 }
 
-function EstadoBadge({ estado }) {
-  const colors = ESTADO_COLORS[estado] || ESTADO_COLORS.borrador
+const COLUMNAS = [
+  { id: 'borrador',    label: 'Borrador',    icon: '📝', color: '#64748B', light: '#F1F5F9', border: '#CBD5E1' },
+  { id: 'enviado',     label: 'Enviado',     icon: '📤', color: '#2563EB', light: '#EFF6FF', border: '#BFDBFE' },
+  { id: 'aceptado',   label: 'Aceptado',   icon: '✅', color: '#16a34a', light: '#F0FDF4', border: '#BBF7D0' },
+  { id: 'contratado', label: 'Contratado', icon: '🤝', color: '#ffffff', light: '#1B2D26', border: '#2d4a3e' },
+  { id: 'perdido',    label: 'Perdido',    icon: '❌', color: '#E8655D', light: '#FFF5F5', border: '#FECACA' },
+]
+
+// ── Tarjeta Kanban ────────────────────────────────────────────────────────────
+function KanbanCard({ estudio, onDelete, onDragStart, isDragging }) {
+  const navigate = useNavigate()
+  const tipo = estudio.analisis?.cliente?.tipo_suministro === 'gas' ? '🔥' : estudio.analisis ? '⚡' : '—'
+  const ahorro = estudio.analisis?.recomendacion?.ahorro
+  const comision = estudio.analisis?.recomendacion?.comision
+  const empresa = estudio.analisis?.cliente?.empresa_actual
+  const num = estudio.numero ? `#${String(estudio.numero).padStart(3, '0')}` : null
+
   return (
-    <span style={{
-      background: colors.bg, color: colors.color,
-      fontSize: 11, fontWeight: 700, padding: '3px 9px',
-      borderRadius: 20, textTransform: 'capitalize', whiteSpace: 'nowrap',
-    }}>
-      {estado}
-    </span>
+    <div
+      draggable
+      onDragStart={e => {
+        e.dataTransfer.setData('text/plain', estudio.id)
+        e.dataTransfer.effectAllowed = 'move'
+        onDragStart(estudio.id)
+      }}
+      style={{
+        background: 'white',
+        border: '1px solid #E2EAE8',
+        borderRadius: 12,
+        padding: '12px 14px',
+        marginBottom: 8,
+        cursor: 'grab',
+        opacity: isDragging ? 0.45 : 1,
+        boxShadow: isDragging ? 'none' : '0 1px 3px rgba(0,0,0,0.06)',
+        transition: 'opacity 0.15s, box-shadow 0.15s',
+        userSelect: 'none',
+      }}
+    >
+      {/* Header: número + tipo + borrar */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          {num && (
+            <span style={{ fontSize: 10, fontWeight: 700, color: '#16a34a', background: '#F0FDF4', padding: '2px 6px', borderRadius: 6 }}>
+              {num}
+            </span>
+          )}
+          <span style={{ fontSize: 12 }}>{tipo}</span>
+          {empresa && (
+            <span style={{ fontSize: 11, color: '#94a3b8', maxWidth: 90, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {empresa}
+            </span>
+          )}
+        </div>
+        <button
+          onPointerDown={e => e.stopPropagation()}
+          onClick={e => { e.stopPropagation(); onDelete(estudio.id) }}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#CBD5E1', fontSize: 14, padding: '2px 4px', lineHeight: 1, borderRadius: 4 }}
+          title="Eliminar"
+        >
+          ✕
+        </button>
+      </div>
+
+      {/* Cliente */}
+      <div
+        onClick={() => navigate(`/estudio/${estudio.id}`)}
+        style={{ cursor: 'pointer' }}
+      >
+        <div style={{ fontSize: 13, fontWeight: 700, color: '#1B2D26', marginBottom: 2, lineHeight: 1.3 }}>
+          {estudio.clienteNombre || 'Sin nombre'}
+        </div>
+        {estudio.nombre && (
+          <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 10, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {estudio.nombre}
+          </div>
+        )}
+
+        {/* Stats */}
+        {(ahorro || comision) && (
+          <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+            {ahorro && (
+              <div style={{ flex: 1, background: '#F0FDF4', borderRadius: 8, padding: '6px 8px' }}>
+                <div style={{ fontSize: 9, color: '#16a34a', fontWeight: 700, marginBottom: 1 }}>AHORRO/AÑO</div>
+                <div style={{ fontSize: 13, fontWeight: 800, color: '#16a34a' }}>+{fmt(Math.round(ahorro))}</div>
+              </div>
+            )}
+            {comision && (
+              <div style={{ flex: 1, background: '#F5F7F6', borderRadius: 8, padding: '6px 8px' }}>
+                <div style={{ fontSize: 9, color: '#527870', fontWeight: 700, marginBottom: 1 }}>COMISIÓN</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#3A9890' }}>{fmt(Math.round(comision))}</div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Footer */}
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span style={{ fontSize: 10, color: '#CBD5E1' }}>{timeAgo(estudio.createdAt)}</span>
+          <span style={{ fontSize: 11, color: '#16a34a', fontWeight: 600 }}>Ver →</span>
+        </div>
+      </div>
+    </div>
   )
 }
 
+// ── Columna Kanban ────────────────────────────────────────────────────────────
+function KanbanColumn({ col, cards, dragOver, onDragOver, onDragLeave, onDrop, onDelete, onCardDragStart, dragId, busqueda }) {
+  const totalAhorro = cards.reduce((s, e) => s + (e.analisis?.recomendacion?.ahorro || 0), 0)
+  const totalComision = cards.reduce((s, e) => s + (e.analisis?.recomendacion?.comision || 0), 0)
+  const isContratado = col.id === 'contratado'
+
+  return (
+    <div
+      onDragOver={e => { e.preventDefault(); onDragOver(col.id) }}
+      onDragLeave={onDragLeave}
+      onDrop={e => { e.preventDefault(); onDrop(col.id) }}
+      style={{
+        width: 264,
+        flexShrink: 0,
+        display: 'flex',
+        flexDirection: 'column',
+        borderRadius: 14,
+        border: dragOver ? `2px solid ${isContratado ? '#22c55e' : col.color}` : '2px solid transparent',
+        transition: 'border-color 0.15s',
+        background: dragOver ? (isContratado ? 'rgba(34,197,94,0.06)' : col.light + 'aa') : 'transparent',
+      }}
+    >
+      {/* Header */}
+      <div style={{
+        background: col.light,
+        borderRadius: '12px 12px 0 0',
+        padding: '12px 14px',
+        border: `1px solid ${col.border}`,
+        borderBottom: 'none',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            <span style={{ fontSize: 14 }}>{col.icon}</span>
+            <span style={{ fontSize: 13, fontWeight: 700, color: isContratado ? '#22c55e' : col.color }}>
+              {col.label}
+            </span>
+            <span style={{
+              background: isContratado ? 'rgba(34,197,94,0.2)' : `${col.color}22`,
+              color: isContratado ? '#22c55e' : col.color,
+              fontSize: 11, fontWeight: 700, padding: '1px 7px', borderRadius: 20,
+            }}>
+              {cards.length}
+            </span>
+          </div>
+        </div>
+        {cards.length > 0 && (
+          <div style={{ display: 'flex', gap: 10, marginTop: 2 }}>
+            {totalAhorro > 0 && (
+              <span style={{ fontSize: 10, color: isContratado ? '#22c55e' : col.color, fontWeight: 600 }}>
+                +{fmt(Math.round(totalAhorro))} ahorro
+              </span>
+            )}
+            {totalComision > 0 && (
+              <span style={{ fontSize: 10, color: isContratado ? 'rgba(255,255,255,0.5)' : '#94a3b8', fontWeight: 600 }}>
+                {fmt(Math.round(totalComision))} com.
+              </span>
+            )}
+          </div>
+        )}
+      </div>
+
+      {/* Cards */}
+      <div style={{
+        flex: 1,
+        background: '#F8FAFC',
+        border: `1px solid ${col.border}`,
+        borderTop: 'none',
+        borderRadius: '0 0 12px 12px',
+        padding: '10px 10px 4px',
+        minHeight: 120,
+      }}>
+        {cards.length === 0 ? (
+          <div style={{
+            textAlign: 'center', padding: '24px 12px',
+            color: '#CBD5E1', fontSize: 12, fontWeight: 500,
+          }}>
+            {busqueda ? 'Sin coincidencias' : 'Arrastra aquí'}
+          </div>
+        ) : (
+          cards.map(e => (
+            <KanbanCard
+              key={e.id}
+              estudio={e}
+              onDelete={onDelete}
+              onDragStart={onCardDragStart}
+              isDragging={dragId === e.id}
+            />
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ── Página principal ──────────────────────────────────────────────────────────
 export default function EstudiosPage() {
   const navigate = useNavigate()
-  const [busqueda, setBusqueda] = useState('')
-  const [filtroEstado, setFiltroEstado] = useState('todos')
   const [estudios, setEstudios] = useState(getEstudios)
+  const [busqueda, setBusqueda] = useState('')
+  const [dragId, setDragId] = useState(null)
+  const [dragOver, setDragOver] = useState(null)
   const [confirmDelete, setConfirmDelete] = useState(null)
 
   function recargar() { setEstudios(getEstudios()) }
+
+  function handleDrop(nuevoEstado) {
+    if (!dragId) return
+    const estudio = estudios.find(e => e.id === dragId)
+    if (estudio && estudio.estado !== nuevoEstado) {
+      saveEstudio({ ...estudio, estado: nuevoEstado })
+      recargar()
+    }
+    setDragId(null)
+    setDragOver(null)
+  }
 
   function handleDelete(id) {
     deleteEstudio(id)
@@ -45,25 +244,28 @@ export default function EstudiosPage() {
     setConfirmDelete(null)
   }
 
-  const filtrados = estudios.filter(e => {
-    const matchBusqueda =
-      !busqueda ||
-      (e.clienteNombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
-      (e.nombre || '').toLowerCase().includes(busqueda.toLowerCase())
-    const matchEstado = filtroEstado === 'todos' || e.estado === filtroEstado
-    return matchBusqueda && matchEstado
-  })
+  const filtrados = estudios.filter(e =>
+    !busqueda ||
+    (e.clienteNombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
+    (e.nombre || '').toLowerCase().includes(busqueda.toLowerCase()) ||
+    (e.analisis?.cliente?.empresa_actual || '').toLowerCase().includes(busqueda.toLowerCase())
+  )
+
+  // Totales globales
+  const totalAhorro = estudios.reduce((s, e) => s + (e.analisis?.recomendacion?.ahorro || 0), 0)
+  const totalComision = estudios.reduce((s, e) => s + (e.analisis?.recomendacion?.comision || 0), 0)
+  const contratados = estudios.filter(e => e.estado === 'contratado').length
 
   return (
-    <div>
-      {/* Controles */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+    <div style={{ height: '100%' }}>
+      {/* Header */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 16, alignItems: 'center', flexWrap: 'wrap' }}>
         <input
           value={busqueda}
           onChange={e => setBusqueda(e.target.value)}
-          placeholder="🔍 Buscar cliente o proyecto..."
+          placeholder="🔍 Buscar cliente, proyecto o empresa..."
           style={{
-            flex: 1, minWidth: 200, padding: '10px 14px', borderRadius: 10,
+            flex: 1, minWidth: 200, padding: '9px 14px', borderRadius: 10,
             border: '1.5px solid #D8E8E4', fontSize: 13, outline: 'none', background: 'white',
           }}
         />
@@ -71,187 +273,117 @@ export default function EstudiosPage() {
           onClick={() => navigate('/estudio/nuevo')}
           style={{
             background: '#16a34a', color: 'white', border: 'none',
-            padding: '10px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer',
-            whiteSpace: 'nowrap',
+            padding: '9px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700,
+            cursor: 'pointer', whiteSpace: 'nowrap',
           }}
         >
           ➕ Nuevo estudio
         </button>
       </div>
 
-      {/* Filtros de estado */}
-      <div style={{ display: 'flex', gap: 8, marginBottom: 20, flexWrap: 'wrap' }}>
-        {ESTADOS.map(e => {
-          const active = filtroEstado === e
-          const colors = ESTADO_COLORS[e] || {}
-          return (
-            <button
-              key={e}
-              onClick={() => setFiltroEstado(e)}
-              style={{
-                background: active ? (colors.bg || '#1B2D26') : 'white',
-                color: active ? (colors.color || 'white') : '#527870',
-                border: `1.5px solid ${active ? (colors.color || '#1B2D26') : '#D8E8E4'}`,
-                borderRadius: 20, padding: '6px 14px', fontSize: 12, fontWeight: 600,
-                cursor: 'pointer', textTransform: 'capitalize', transition: 'all 0.15s',
-              }}
-            >
-              {e === 'todos' ? 'Todos' : e}
-              {e !== 'todos' && (
-                <span style={{ marginLeft: 6, opacity: 0.7 }}>
-                  ({estudios.filter(es => es.estado === e).length})
-                </span>
-              )}
-            </button>
-          )
-        })}
+      {/* Stats rápidas */}
+      {estudios.length > 0 && (
+        <div style={{ display: 'flex', gap: 10, marginBottom: 18, flexWrap: 'wrap' }}>
+          {[
+            { label: 'Total estudios', value: estudios.length, color: '#1B2D26' },
+            { label: 'Contratados', value: contratados, color: '#16a34a' },
+            { label: 'Ahorro generado', value: totalAhorro > 0 ? '+' + fmt(Math.round(totalAhorro)) : '—', color: '#16a34a' },
+            { label: 'Comisiones', value: totalComision > 0 ? fmt(Math.round(totalComision)) : '—', color: '#3A9890' },
+          ].map(s => (
+            <div key={s.label} style={{
+              background: 'white', borderRadius: 10, padding: '8px 14px',
+              border: '1px solid #E2EAE8', display: 'flex', alignItems: 'center', gap: 8,
+            }}>
+              <span style={{ fontSize: 11, color: '#94a3b8', fontWeight: 600 }}>{s.label}</span>
+              <span style={{ fontSize: 14, fontWeight: 800, color: s.color }}>{s.value}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Kanban board */}
+      <div
+        onDragEnd={() => { setDragId(null); setDragOver(null) }}
+        style={{
+          display: 'flex',
+          gap: 12,
+          overflowX: 'auto',
+          paddingBottom: 16,
+          alignItems: 'flex-start',
+          minHeight: 420,
+        }}
+      >
+        {COLUMNAS.map(col => (
+          <KanbanColumn
+            key={col.id}
+            col={col}
+            cards={filtrados.filter(e => e.estado === col.id)}
+            dragOver={dragOver === col.id}
+            dragId={dragId}
+            busqueda={busqueda}
+            onDragOver={colId => setDragOver(colId)}
+            onDragLeave={() => setDragOver(null)}
+            onDrop={handleDrop}
+            onDelete={id => setConfirmDelete(id)}
+            onCardDragStart={id => setDragId(id)}
+          />
+        ))}
       </div>
 
-      {/* Tabla */}
-      {filtrados.length === 0 ? (
+      {/* Instrucción drag */}
+      {estudios.length > 0 && (
+        <p style={{ fontSize: 11, color: '#CBD5E1', textAlign: 'center', marginTop: 4 }}>
+          Arrastra las tarjetas entre columnas para cambiar el estado
+        </p>
+      )}
+
+      {/* Empty state total */}
+      {estudios.length === 0 && (
         <div style={{
           background: 'white', borderRadius: 16, padding: '60px 24px',
           textAlign: 'center', border: '1px solid #D8E8E4',
         }}>
-          <div style={{ fontSize: 44, marginBottom: 12 }}>📋</div>
+          <div style={{ fontSize: 48, marginBottom: 12 }}>📋</div>
           <p style={{ fontSize: 15, color: '#527870', marginBottom: 20, fontWeight: 500 }}>
-            {busqueda || filtroEstado !== 'todos'
-              ? 'No hay estudios que coincidan con los filtros'
-              : 'Aún no hay estudios. ¡Crea tu primero!'}
+            Aún no hay estudios. ¡Crea el primero!
           </p>
-          {!busqueda && filtroEstado === 'todos' && (
-            <button
-              onClick={() => navigate('/estudio/nuevo')}
-              style={{
-                background: '#16a34a', color: 'white', border: 'none',
-                padding: '12px 24px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
-              }}
-            >
-              ➕ Crear primer estudio
-            </button>
-          )}
-        </div>
-      ) : (
-        <div style={{ background: 'white', borderRadius: 16, border: '1px solid #D8E8E4', overflow: 'hidden' }}>
-          <div style={{ overflowX: 'auto' }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-              <thead>
-                <tr style={{ background: '#F5F7F6' }}>
-                  {['#', 'Cliente', 'Proyecto', 'Tipo', 'Ahorro/año', 'Comisión', 'Estado', 'Fecha', 'Acciones'].map(h => (
-                    <th key={h} style={{
-                      padding: '10px 14px', textAlign: 'left', fontSize: 11,
-                      fontWeight: 700, color: '#527870', textTransform: 'uppercase',
-                      letterSpacing: 0.5, whiteSpace: 'nowrap',
-                    }}>
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtrados.map((e, i) => {
-                  const tipo = e.analisis?.cliente?.tipo_suministro === 'gas' ? '🔥 Gas' : e.analisis ? '⚡ Luz' : '—'
-                  const ahorro = e.analisis?.recomendacion?.ahorro
-                  const comision = e.analisis?.recomendacion?.comision
-                  return (
-                    <tr
-                      key={e.id}
-                      style={{ borderTop: i > 0 ? '1px solid #F0F4F3' : 'none' }}
-                    >
-                      <td style={{ padding: '12px 14px', fontSize: 12, fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>
-                        {e.numero ? `#${String(e.numero).padStart(3, '0')}` : '—'}
-                      </td>
-                      <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 600, color: '#1B2D26' }}>
-                        {e.clienteNombre || '—'}
-                      </td>
-                      <td style={{ padding: '12px 14px', fontSize: 13, color: '#527870', maxWidth: 160 }}>
-                        <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', display: 'block' }}>
-                          {e.nombre || '—'}
-                        </span>
-                      </td>
-                      <td style={{ padding: '12px 14px', fontSize: 13, color: '#527870', whiteSpace: 'nowrap' }}>
-                        {tipo}
-                      </td>
-                      <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 700, color: '#16a34a', whiteSpace: 'nowrap' }}>
-                        {ahorro ? `+${fmt(Math.round(ahorro))}` : '—'}
-                      </td>
-                      <td style={{ padding: '12px 14px', fontSize: 13, fontWeight: 700, color: '#3A9890', whiteSpace: 'nowrap' }}>
-                        {comision ? fmt(Math.round(comision)) : '—'}
-                      </td>
-                      <td style={{ padding: '12px 14px' }}>
-                        <EstadoBadge estado={e.estado} />
-                      </td>
-                      <td style={{ padding: '12px 14px', fontSize: 12, color: '#527870', whiteSpace: 'nowrap' }}>
-                        {new Date(e.createdAt).toLocaleDateString('es-ES')}
-                      </td>
-                      <td style={{ padding: '12px 14px', whiteSpace: 'nowrap' }}>
-                        <button
-                          onClick={() => navigate(`/estudio/${e.id}`)}
-                          title="Editar"
-                          style={{
-                            background: '#EBF8EA', border: 'none', borderRadius: 8,
-                            width: 32, height: 32, cursor: 'pointer', fontSize: 14,
-                            marginRight: 6,
-                          }}
-                        >
-                          ✏️
-                        </button>
-                        <button
-                          onClick={() => setConfirmDelete(e.id)}
-                          title="Eliminar"
-                          style={{
-                            background: '#FDEAE9', border: 'none', borderRadius: 8,
-                            width: 32, height: 32, cursor: 'pointer', fontSize: 14,
-                          }}
-                        >
-                          🗑️
-                        </button>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
+          <button
+            onClick={() => navigate('/estudio/nuevo')}
+            style={{
+              background: '#16a34a', color: 'white', border: 'none',
+              padding: '12px 24px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            }}
+          >
+            ➕ Crear primer estudio
+          </button>
         </div>
       )}
 
       {/* Modal confirmación borrar */}
       {confirmDelete && (
-        <div style={{
-          position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          zIndex: 200, padding: 20,
-        }}>
-          <div style={{
-            background: 'white', borderRadius: 16, padding: 28,
-            maxWidth: 360, width: '100%', textAlign: 'center',
-          }}>
+        <div
+          onClick={() => setConfirmDelete(null)}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 20 }}
+        >
+          <div
+            onClick={e => e.stopPropagation()}
+            style={{ background: 'white', borderRadius: 16, padding: 28, maxWidth: 360, width: '100%', textAlign: 'center' }}
+          >
             <div style={{ fontSize: 36, marginBottom: 12 }}>🗑️</div>
-            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: '#1B2D26' }}>
-              Eliminar estudio
-            </h3>
+            <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: '#1B2D26' }}>Eliminar estudio</h3>
             <p style={{ fontSize: 13, color: '#527870', marginBottom: 24 }}>
-              Esta acción no se puede deshacer. ¿Seguro que quieres eliminarlo?
+              Esta acción no se puede deshacer.
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button
                 onClick={() => setConfirmDelete(null)}
-                style={{
-                  flex: 1, background: '#F5F7F6', border: '1px solid #D8E8E4',
-                  borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 600,
-                  cursor: 'pointer', color: '#527870',
-                }}
+                style={{ flex: 1, background: '#F5F7F6', border: '1px solid #D8E8E4', borderRadius: 10, padding: 11, fontSize: 13, fontWeight: 600, cursor: 'pointer', color: '#527870' }}
               >
                 Cancelar
               </button>
               <button
                 onClick={() => handleDelete(confirmDelete)}
-                style={{
-                  flex: 1, background: '#E8655D', border: 'none',
-                  borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 700,
-                  cursor: 'pointer', color: 'white',
-                }}
+                style={{ flex: 1, background: '#E8655D', border: 'none', borderRadius: 10, padding: 11, fontSize: 13, fontWeight: 700, cursor: 'pointer', color: 'white' }}
               >
                 Eliminar
               </button>
@@ -259,6 +391,10 @@ export default function EstudiosPage() {
           </div>
         </div>
       )}
+
+      <style>{`
+        [draggable=true]:active { cursor: grabbing; }
+      `}</style>
     </div>
   )
 }
