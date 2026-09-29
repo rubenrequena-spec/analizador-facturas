@@ -24,6 +24,9 @@ export default function InmobiliariasPublicPage() {
           <img src="/assets/logo-finanzas-healthy.png" alt="Finanzas Healthy" style={{ height: 44, marginBottom: 12 }} />
           <h1 style={{ fontSize: 22, fontWeight: 800, color: COLORS.dark, marginBottom: 6 }}>Portal para inmobiliarias</h1>
           <p style={{ fontSize: 14, color: COLORS.muted }}>Sube la documentación de tus clientes o consulta las tarifas actualizadas.</p>
+          <p style={{ fontSize: 12, color: COLORS.muted, marginTop: 6 }}>
+            ¿Ya tienes cuenta? <a href="/colaborador/login" style={{ color: COLORS.green, fontWeight: 600 }}>Inicia sesión aquí</a>
+          </p>
         </div>
 
         <div style={{ display: 'flex', gap: 8, marginBottom: 20, background: 'white', borderRadius: 12, padding: 4, border: `1px solid ${COLORS.border}` }}>

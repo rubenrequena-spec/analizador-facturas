@@ -9,6 +9,7 @@ const NAV_ITEMS = [
   { to: '/clientes', label: 'Clientes', icon: '👥' },
   { to: '/tarifas', label: 'Tarifas', icon: '📄' },
   { to: '/documentos-inmobiliarias', label: 'Inmobiliarias', icon: '🏢' },
+  { to: '/colaboradores', label: 'Colaboradores', icon: '🤝' },
 ]
 
 const PAGE_TITLES = {
@@ -18,6 +19,7 @@ const PAGE_TITLES = {
   '/clientes': 'Clientes',
   '/tarifas': 'Tarifas',
   '/documentos-inmobiliarias': 'Inmobiliarias',
+  '/colaboradores': 'Colaboradores',
   '/admin': 'Administración',
 }
 
