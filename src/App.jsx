@@ -12,8 +12,13 @@ import TarifasPage from './pages/TarifasPage.jsx'
 import InmobiliariasPage from './pages/InmobiliariasPage.jsx'
 import InmobiliariasPublicPage from './pages/InmobiliariasPublicPage.jsx'
 import ColaboradoresPage from './pages/ColaboradoresPage.jsx'
+import ColaboradorLayout from './components/ColaboradorLayout.jsx'
 import ColaboradorLoginPage from './pages/colaborador/ColaboradorLoginPage.jsx'
-import ColaboradorPortalPage from './pages/colaborador/ColaboradorPortalPage.jsx'
+import ColaboradorDashboardPage from './pages/colaborador/ColaboradorDashboardPage.jsx'
+import ColaboradorEnviarPage from './pages/colaborador/ColaboradorEnviarPage.jsx'
+import ColaboradorCalculadoraPage from './pages/colaborador/ColaboradorCalculadoraPage.jsx'
+import ColaboradorEnviosPage from './pages/colaborador/ColaboradorEnviosPage.jsx'
+import ColaboradorTarifasPage from './pages/colaborador/ColaboradorTarifasPage.jsx'
 
 function Loading() {
   return (
@@ -49,10 +54,16 @@ export default function App() {
             path="/colaborador"
             element={
               <RequireColaboradorAuth>
-                <ColaboradorPortalPage />
+                <ColaboradorLayout />
               </RequireColaboradorAuth>
             }
-          />
+          >
+            <Route index element={<ColaboradorDashboardPage />} />
+            <Route path="enviar" element={<ColaboradorEnviarPage />} />
+            <Route path="calculadora" element={<ColaboradorCalculadoraPage />} />
+            <Route path="envios" element={<ColaboradorEnviosPage />} />
+            <Route path="tarifas" element={<ColaboradorTarifasPage />} />
+          </Route>
           <Route
             path="/"
             element={
