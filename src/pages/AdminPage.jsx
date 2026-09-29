@@ -1,16 +1,29 @@
-import React, { useState } from 'react'
-import { getSession } from '../auth.js'
-import { getComerciales, createUser, deleteUser } from '../auth.js'
+import React, { useEffect, useState } from 'react'
+import { useAuth } from '../auth.js'
+import { supabase } from '../supabase.js'
 
 export default function AdminPage() {
-  const session = getSession()
-  const [comerciales, setComerciales] = useState(getComerciales)
+  const { isAdmin } = useAuth()
+  const [comerciales, setComerciales] = useState([])
   const [form, setForm] = useState({ nombre: '', email: '', password: '' })
   const [errForm, setErrForm] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
-  const [confirmDelete, setConfirmDelete] = useState(null)
+  const [confirmToggle, setConfirmToggle] = useState(null)
+  const [creating, setCreating] = useState(false)
 
-  if (session?.rol !== 'admin') {
+  async function recargar() {
+    const { data, error } = await supabase
+      .from('profiles')
+      .select('*')
+      .order('created_at', { ascending: true })
+    if (!error) setComerciales(data || [])
+  }
+
+  useEffect(() => {
+    if (isAdmin) recargar()
+  }, [isAdmin])
+
+  if (!isAdmin) {
     return (
       <div style={{
         background: 'white', borderRadius: 16, padding: '60px 24px',
@@ -27,11 +40,9 @@ export default function AdminPage() {
     )
   }
 
-  function recargar() { setComerciales(getComerciales()) }
-
   function setF(key, val) { setForm(f => ({ ...f, [key]: val })) }
 
-  function handleCrear() {
+  async function handleCrear() {
     setErrForm('')
     setSuccessMsg('')
     if (!form.nombre.trim() || !form.email.trim() || !form.password.trim()) {
@@ -42,25 +53,38 @@ export default function AdminPage() {
       setErrForm('La contraseña debe tener al menos 6 caracteres')
       return
     }
+    setCreating(true)
     try {
-      createUser(form)
+      const { data: { session: authSession } } = await supabase.auth.getSession()
+      const res = await fetch('/api/admin/create-user', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${authSession?.access_token || ''}`,
+        },
+        body: JSON.stringify(form),
+      })
+      const json = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(json.error || 'No se pudo crear el usuario')
       setForm({ nombre: '', email: '', password: '' })
       setSuccessMsg('Comercial creado correctamente')
-      recargar()
+      await recargar()
       setTimeout(() => setSuccessMsg(''), 3000)
     } catch (err) {
       setErrForm(err.message)
+    } finally {
+      setCreating(false)
     }
   }
 
-  function handleDelete(id) {
-    try {
-      deleteUser(id)
-      recargar()
-      setConfirmDelete(null)
-    } catch (err) {
-      alert(err.message)
+  async function handleToggleActive(u) {
+    const { error } = await supabase.from('profiles').update({ active: !u.active }).eq('id', u.id)
+    if (error) {
+      alert(error.message)
+      return
     }
+    setConfirmToggle(null)
+    recargar()
   }
 
   const inputStyle = {
@@ -95,48 +119,57 @@ export default function AdminPage() {
                 style={{
                   display: 'flex', alignItems: 'center', gap: 14,
                   padding: '14px 20px', borderTop: i > 0 ? '1px solid #F0F4F3' : 'none',
+                  opacity: u.active === false ? 0.5 : 1,
                 }}
               >
                 <div style={{
                   width: 40, height: 40, borderRadius: 10,
-                  background: u.rol === 'admin' ? '#1B2D26' : '#E3F5F3',
+                  background: u.role === 'admin' ? '#1B2D26' : '#E3F5F3',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
                   fontSize: 16, fontWeight: 700,
-                  color: u.rol === 'admin' ? '#22c55e' : '#3A9890',
+                  color: u.role === 'admin' ? '#22c55e' : '#3A9890',
                   flexShrink: 0,
                 }}>
-                  {(u.nombre || '?')[0].toUpperCase()}
+                  {(u.full_name || u.email || '?')[0].toUpperCase()}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ fontSize: 14, fontWeight: 700, color: '#1B2D26', display: 'flex', alignItems: 'center', gap: 8 }}>
-                    {u.nombre}
+                    {u.full_name || u.email}
                     <span style={{
                       fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
-                      background: u.rol === 'admin' ? '#1B2D26' : '#EBF8EA',
-                      color: u.rol === 'admin' ? '#22c55e' : '#16a34a',
+                      background: u.role === 'admin' ? '#1B2D26' : '#EBF8EA',
+                      color: u.role === 'admin' ? '#22c55e' : '#16a34a',
                     }}>
-                      {u.rol}
+                      {u.role}
                     </span>
+                    {u.active === false && (
+                      <span style={{
+                        fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 20,
+                        background: '#FDEAE9', color: '#E8655D',
+                      }}>
+                        inactivo
+                      </span>
+                    )}
                   </div>
                   <div style={{ fontSize: 12, color: '#527870', marginTop: 2 }}>
                     {u.email}
-                    {u.createdAt && (
+                    {u.created_at && (
                       <span style={{ marginLeft: 10 }}>
-                        Desde {new Date(u.createdAt).toLocaleDateString('es-ES')}
+                        Desde {new Date(u.created_at).toLocaleDateString('es-ES')}
                       </span>
                     )}
                   </div>
                 </div>
-                {u.rol !== 'admin' && (
+                {u.role !== 'admin' && (
                   <button
-                    onClick={() => setConfirmDelete(u.id)}
-                    title="Eliminar"
+                    onClick={() => setConfirmToggle(u)}
+                    title={u.active === false ? 'Activar' : 'Desactivar'}
                     style={{
-                      background: '#FDEAE9', border: 'none', borderRadius: 8,
+                      background: u.active === false ? '#EBF8EA' : '#FDEAE9', border: 'none', borderRadius: 8,
                       width: 32, height: 32, cursor: 'pointer', fontSize: 14, flexShrink: 0,
                     }}
                   >
-                    🗑️
+                    {u.active === false ? '✅' : '🚫'}
                   </button>
                 )}
               </div>
@@ -203,12 +236,14 @@ export default function AdminPage() {
 
         <button
           onClick={handleCrear}
+          disabled={creating}
           style={{
-            width: '100%', background: '#16a34a', color: 'white', border: 'none',
-            padding: '12px', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: 'pointer',
+            width: '100%', background: creating ? '#94a3b8' : '#16a34a', color: 'white', border: 'none',
+            padding: '12px', borderRadius: 10, fontSize: 14, fontWeight: 700,
+            cursor: creating ? 'not-allowed' : 'pointer',
           }}
         >
-          Crear cuenta
+          {creating ? 'Creando…' : 'Crear cuenta'}
         </button>
 
         <p style={{ fontSize: 11, color: '#527870', marginTop: 10, lineHeight: 1.5 }}>
@@ -216,8 +251,8 @@ export default function AdminPage() {
         </p>
       </div>
 
-      {/* Modal confirmación borrar */}
-      {confirmDelete && (
+      {/* Modal confirmación activar/desactivar */}
+      {confirmToggle && (
         <div style={{
           position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.5)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -229,14 +264,16 @@ export default function AdminPage() {
           }}>
             <div style={{ fontSize: 36, marginBottom: 12 }}>👤</div>
             <h3 style={{ fontSize: 16, fontWeight: 700, marginBottom: 8, color: '#1B2D26' }}>
-              Eliminar comercial
+              {confirmToggle.active === false ? 'Activar comercial' : 'Desactivar comercial'}
             </h3>
             <p style={{ fontSize: 13, color: '#527870', marginBottom: 24 }}>
-              ¿Seguro que quieres eliminar esta cuenta? El comercial ya no podrá acceder.
+              {confirmToggle.active === false
+                ? '¿Reactivar el acceso de esta cuenta?'
+                : '¿Seguro que quieres desactivar esta cuenta? Perderá el acceso al instante, pero su historial se conserva.'}
             </p>
             <div style={{ display: 'flex', gap: 10 }}>
               <button
-                onClick={() => setConfirmDelete(null)}
+                onClick={() => setConfirmToggle(null)}
                 style={{
                   flex: 1, background: '#F5F7F6', border: '1px solid #D8E8E4',
                   borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 600,
@@ -246,14 +283,14 @@ export default function AdminPage() {
                 Cancelar
               </button>
               <button
-                onClick={() => handleDelete(confirmDelete)}
+                onClick={() => handleToggleActive(confirmToggle)}
                 style={{
                   flex: 1, background: '#E8655D', border: 'none',
                   borderRadius: 10, padding: '11px', fontSize: 13, fontWeight: 700,
                   cursor: 'pointer', color: 'white',
                 }}
               >
-                Eliminar
+                {confirmToggle.active === false ? 'Activar' : 'Desactivar'}
               </button>
             </div>
           </div>

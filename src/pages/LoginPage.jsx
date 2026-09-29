@@ -1,16 +1,17 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { login, getSession } from '../auth.js'
+import { signIn, useAuth } from '../auth.js'
 
 export default function LoginPage() {
   const navigate = useNavigate()
+  const { isAuthenticated, loading: authLoading } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
   // Si ya tiene sesión, redirigir
-  if (getSession()) {
+  if (!authLoading && isAuthenticated) {
     navigate('/', { replace: true })
     return null
   }
@@ -19,10 +20,9 @@ export default function LoginPage() {
     e.preventDefault()
     setError('')
     setLoading(true)
-    await new Promise(r => setTimeout(r, 300))
-    const ok = login(email, password)
+    const errMsg = await signIn(email, password)
     setLoading(false)
-    if (ok) {
+    if (!errMsg) {
       navigate('/')
     } else {
       setError('Credenciales incorrectas')

@@ -1,7 +1,7 @@
 import React from 'react'
 import { useNavigate } from 'react-router-dom'
 import { getEstudios } from '../store.js'
-import { getSession } from '../auth.js'
+import { useAuth } from '../auth.js'
 
 function fmt(num) {
   if (num == null) return '—'
@@ -31,7 +31,7 @@ function EstadoBadge({ estado }) {
 
 export default function DashboardPage() {
   const navigate = useNavigate()
-  const session = getSession()
+  const { profile } = useAuth()
   const estudios = getEstudios()
 
   const now = new Date()
@@ -64,7 +64,7 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 800, color: '#1B2D26' }}>
-            Hola, {session?.nombre} 👋
+            Hola, {profile?.full_name || profile?.email} 👋
           </h2>
           <p style={{ fontSize: 13, color: '#527870', marginTop: 2 }}>
             Aquí tienes el resumen de tu actividad

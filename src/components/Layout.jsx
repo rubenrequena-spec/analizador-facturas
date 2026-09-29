@@ -1,12 +1,14 @@
 import React, { useState } from 'react'
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom'
-import { getSession, logout } from '../auth.js'
+import { useAuth, signOut } from '../auth.js'
 
 const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: '📊', exact: true },
   { to: '/estudio/nuevo', label: 'Nuevo Estudio', icon: '➕' },
   { to: '/estudios', label: 'Mis Estudios', icon: '📁' },
   { to: '/clientes', label: 'Clientes', icon: '👥' },
+  { to: '/tarifas', label: 'Tarifas', icon: '📄' },
+  { to: '/documentos-inmobiliarias', label: 'Inmobiliarias', icon: '🏢' },
 ]
 
 const PAGE_TITLES = {
@@ -14,17 +16,19 @@ const PAGE_TITLES = {
   '/estudio/nuevo': 'Nuevo Estudio',
   '/estudios': 'Mis Estudios',
   '/clientes': 'Clientes',
+  '/tarifas': 'Tarifas',
+  '/documentos-inmobiliarias': 'Inmobiliarias',
   '/admin': 'Administración',
 }
 
 export default function Layout() {
-  const session = getSession()
+  const { profile, isAdmin } = useAuth()
   const navigate = useNavigate()
   const location = useLocation()
   const [sidebarOpen, setSidebarOpen] = useState(false)
 
-  function handleLogout() {
-    logout()
+  async function handleLogout() {
+    await signOut()
     navigate('/login')
   }
 
@@ -33,7 +37,7 @@ export default function Layout() {
     .find(([path]) => location.pathname.startsWith(path))?.[1] || 'Dashboard'
 
   const navItems = [...NAV_ITEMS]
-  if (session?.rol === 'admin') {
+  if (isAdmin) {
     navItems.push({ to: '/admin', label: 'Admin', icon: '⚙️' })
   }
 
@@ -107,10 +111,10 @@ export default function Layout() {
         {/* Usuario + logout */}
         <div style={{ padding: '14px 18px', borderTop: '1px solid rgba(255,255,255,0.08)' }}>
           <div style={{ fontSize: 12, color: 'rgba(255,255,255,0.5)', marginBottom: 2 }}>
-            {session?.rol === 'admin' ? '⚙️ Admin' : '👤 Comercial'}
+            {isAdmin ? '⚙️ Admin' : '👤 Comercial'}
           </div>
           <div style={{ fontSize: 13, fontWeight: 600, color: 'rgba(255,255,255,0.85)', marginBottom: 10, wordBreak: 'break-all' }}>
-            {session?.nombre}
+            {profile?.full_name || profile?.email}
           </div>
           <button
             onClick={handleLogout}
