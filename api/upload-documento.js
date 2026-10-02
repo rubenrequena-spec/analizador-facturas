@@ -23,7 +23,23 @@ export default async function handler(req, res) {
   const admin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  const path = `inmobiliaria/${randomUUID()}.${EXT[parsed.data.contentType]}`; // nunca el nombre del usuario
+  // Colaborador con sesión: su carpeta `colaborador/<colaborador_id>/`, que la
+  // política RLS le deja leer (supabase/colaborador-lee-sus-documentos.sql).
+  // Sin sesión (página pública): `inmobiliaria/`, solo legible por el personal.
+  let carpeta = "inmobiliaria";
+  const token = (req.headers.authorization || "").replace("Bearer ", "");
+  if (token) {
+    const { data: u, error: authErr } = await admin.auth.getUser(token);
+    if (authErr || !u?.user) return res.status(401).json({ error: "Sesión inválida" });
+    const { data: cu } = await admin
+      .from("colaborador_usuarios")
+      .select("colaborador_id")
+      .eq("id", u.user.id)
+      .eq("active", true)
+      .maybeSingle();
+    if (cu?.colaborador_id) carpeta = `colaborador/${cu.colaborador_id}`;
+  }
+  const path = `${carpeta}/${randomUUID()}.${EXT[parsed.data.contentType]}`; // nunca el nombre del usuario
   const { data, error } = await admin.storage.from("documentos").createSignedUploadUrl(path);
   if (error) {
     console.error("[upload-documento] no se pudo firmar", error.message); // sin PII

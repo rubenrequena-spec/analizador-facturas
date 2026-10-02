@@ -1,4 +1,5 @@
 import React from 'react'
+import { abrirDocumento } from '../../supabase.js'
 
 export const ESTADO_LABEL = { nuevo: 'Nuevo', en_tramite: 'En trámite', completado: 'Completado' }
 export const ESTADO_COLOR = {
@@ -23,9 +24,9 @@ export default function FilaEnvio({ envio, bordered = true }) {
       {Array.isArray(envio.archivos) && envio.archivos.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
           {envio.archivos.map((a, j) => (
-            <span key={j} style={{ fontSize: 12, color: '#16a34a', fontWeight: 600, textDecoration: 'none', background: '#EBF8EA', borderRadius: 8, padding: '5px 9px' }}>
+            <button key={j} type="button" onClick={() => abrirDocumento(a.path)} style={{ border: 'none', cursor: 'pointer', fontSize: 12, color: '#16a34a', fontWeight: 600, textDecoration: 'none', background: '#EBF8EA', borderRadius: 8, padding: '5px 9px' }}>
               📎 {a.nombre || `documento ${j + 1}`}
-            </span>
+            </button>
           ))}
         </div>
       )}
