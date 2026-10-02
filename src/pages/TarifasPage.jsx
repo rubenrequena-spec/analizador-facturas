@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { useAuth } from '../auth.js'
-import { supabase, uploadDocumento } from '../supabase.js'
+import { supabase, uploadTarifa } from '../supabase.js'
 
 export default function TarifasPage() {
   const { isAdmin } = useAuth()
@@ -34,7 +34,7 @@ export default function TarifasPage() {
     }
     setSaving(true)
     try {
-      const subido = await uploadDocumento(file, 'tarifas')
+      const subido = await uploadTarifa(file)
       if (!subido) throw new Error('No se pudo subir el archivo')
       const { error: insertErr } = await supabase.from('tarifas_documentos').insert({
         compania: form.compania.trim(),
@@ -98,7 +98,7 @@ export default function TarifasPage() {
         </div>
         <div style={{ marginBottom: 16 }}>
           <label style={labelStyle}>Archivo (PDF) *</label>
-          <input type="file" accept="application/pdf,image/*" onChange={e => setFile(e.target.files?.[0] || null)} style={inputStyle} />
+          <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onChange={e => setFile(e.target.files?.[0] || null)} style={inputStyle} />
         </div>
         {error && (
           <div style={{ background: '#FDEAE9', border: '1px solid #E8655D', borderRadius: 8, padding: '10px 14px', marginBottom: 12, fontSize: 13, color: '#E8655D' }}>

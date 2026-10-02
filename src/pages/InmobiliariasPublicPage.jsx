@@ -88,7 +88,7 @@ function FormularioSubida() {
     try {
       const subidos = []
       for (const file of files) {
-        const r = await uploadDocumento(file, 'inmobiliaria')
+        const r = await uploadDocumento(file)
         if (r) subidos.push(r)
       }
 
@@ -181,7 +181,7 @@ function FormularioSubida() {
         <input
           type="file"
           multiple
-          accept="application/pdf,image/*"
+          accept="application/pdf,image/jpeg,image/png,image/webp"
           onChange={e => setFiles(Array.from(e.target.files || []))}
           style={inputStyle}
         />

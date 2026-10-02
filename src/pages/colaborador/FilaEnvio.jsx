@@ -23,9 +23,9 @@ export default function FilaEnvio({ envio, bordered = true }) {
       {Array.isArray(envio.archivos) && envio.archivos.length > 0 && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 8 }}>
           {envio.archivos.map((a, j) => (
-            <a key={j} href={a.url} target="_blank" rel="noreferrer" style={{ fontSize: 12, color: '#16a34a', fontWeight: 600, textDecoration: 'none', background: '#EBF8EA', borderRadius: 8, padding: '5px 9px' }}>
+            <span key={j} style={{ fontSize: 12, color: '#16a34a', fontWeight: 600, textDecoration: 'none', background: '#EBF8EA', borderRadius: 8, padding: '5px 9px' }}>
               📎 {a.nombre || `documento ${j + 1}`}
-            </a>
+            </span>
           ))}
         </div>
       )}

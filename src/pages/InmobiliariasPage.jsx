@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { supabase } from '../supabase.js'
+import { supabase, abrirDocumento } from '../supabase.js'
 
 const ESTADOS = [
   { value: 'nuevo', label: 'Nuevo' },
@@ -79,18 +79,18 @@ export default function InmobiliariasPage() {
               {Array.isArray(d.archivos) && d.archivos.length > 0 && (
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 10 }}>
                   {d.archivos.map((a, j) => (
-                    <a
+                    <button
                       key={j}
-                      href={a.url}
-                      target="_blank"
-                      rel="noreferrer"
+                      type="button"
+                      onClick={() => abrirDocumento(a.path)}
                       style={{
+                        border: 'none', cursor: 'pointer',
                         fontSize: 12, color: '#16a34a', fontWeight: 600, textDecoration: 'none',
                         background: '#EBF8EA', borderRadius: 8, padding: '6px 10px',
                       }}
                     >
                       📎 {a.nombre || `documento ${j + 1}`}
-                    </a>
+                    </button>
                   ))}
                 </div>
               )}

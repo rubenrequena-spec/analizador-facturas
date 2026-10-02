@@ -23,7 +23,7 @@ export default function ColaboradorEnviarPage() {
     try {
       const subidos = []
       for (const file of files) {
-        const r = await uploadDocumento(file, 'inmobiliaria')
+        const r = await uploadDocumento(file)
         if (r) subidos.push(r)
       }
       const { error: insertErr } = await supabase.from('inmobiliaria_documentos').insert({
@@ -74,7 +74,7 @@ export default function ColaboradorEnviarPage() {
       </div>
       <div style={{ marginBottom: 14 }}>
         <label style={labelStyle}>Documentos *</label>
-        <input type="file" multiple accept="application/pdf,image/*" onChange={e => setFiles(Array.from(e.target.files || []))} style={inputStyle} />
+        <input type="file" multiple accept="application/pdf,image/jpeg,image/png,image/webp" onChange={e => setFiles(Array.from(e.target.files || []))} style={inputStyle} />
         {files.length > 0 && (
           <div style={{ fontSize: 12, color: COLORS.muted, marginTop: 6 }}>
             {files.length} archivo{files.length > 1 ? 's' : ''} seleccionado{files.length > 1 ? 's' : ''}
