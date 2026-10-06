@@ -47,8 +47,8 @@ export async function uploadDocumento(file) {
   return { path: firma.path, nombre: file.name }
 }
 
-// Abre un documento privado con un enlace temporal (5 min). Pueden leer el
-// personal activo (todo) y cada colaborador (solo los de su empresa), por RLS.
+// Abre un documento privado con un enlace temporal (5 min). Por RLS: el admin
+// lee todo, cada comercial sus contratos y cada colaborador los de su empresa.
 export async function abrirDocumento(path) {
   const ventana = window.open('', '_blank') // antes del await, o el navegador bloquea la ventana
   if (ventana) ventana.opener = null

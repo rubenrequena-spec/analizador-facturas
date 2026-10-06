@@ -12,6 +12,8 @@ import TarifasPage from './pages/TarifasPage.jsx'
 import InmobiliariasPage from './pages/InmobiliariasPage.jsx'
 import InmobiliariasPublicPage from './pages/InmobiliariasPublicPage.jsx'
 import ColaboradoresPage from './pages/ColaboradoresPage.jsx'
+import ContratosPage from './pages/ContratosPage.jsx'
+import NuevoContratoPage from './pages/NuevoContratoPage.jsx'
 import ColaboradorLayout from './components/ColaboradorLayout.jsx'
 import ColaboradorLoginPage from './pages/colaborador/ColaboradorLoginPage.jsx'
 import ColaboradorDashboardPage from './pages/colaborador/ColaboradorDashboardPage.jsx'
@@ -32,6 +34,13 @@ function RequireAuth({ children }) {
   const { isAuthenticated, loading } = useAuth()
   if (loading) return <Loading />
   if (!isAuthenticated) return <Navigate to="/login" replace />
+  return children
+}
+
+// Inmobiliarias, colaboradores y administración: solo admin (RLS lo refuerza en la BD).
+function RequireAdmin({ children }) {
+  const { isAdmin } = useAuth()
+  if (!isAdmin) return <Navigate to="/" replace />
   return children
 }
 
@@ -76,11 +85,13 @@ export default function App() {
             <Route path="estudio/nuevo" element={<EstudioPage />} />
             <Route path="estudio/:id" element={<EstudioPage />} />
             <Route path="estudios" element={<EstudiosPage />} />
+            <Route path="contratos" element={<ContratosPage />} />
+            <Route path="contratos/nuevo" element={<NuevoContratoPage />} />
             <Route path="clientes" element={<ClientesPage />} />
             <Route path="tarifas" element={<TarifasPage />} />
-            <Route path="documentos-inmobiliarias" element={<InmobiliariasPage />} />
-            <Route path="colaboradores" element={<ColaboradoresPage />} />
-            <Route path="admin" element={<AdminPage />} />
+            <Route path="documentos-inmobiliarias" element={<RequireAdmin><InmobiliariasPage /></RequireAdmin>} />
+            <Route path="colaboradores" element={<RequireAdmin><ColaboradoresPage /></RequireAdmin>} />
+            <Route path="admin" element={<RequireAdmin><AdminPage /></RequireAdmin>} />
           </Route>
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>

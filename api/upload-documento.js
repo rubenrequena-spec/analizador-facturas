@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 
 // Emite una URL de subida firmada (un solo uso) al bucket PRIVADO `documentos`.
-// La usan la página pública de inmobiliarias y los colaboradores: el navegador
+// La usan la página pública de inmobiliarias, los colaboradores y los contratos
+// de los comerciales: el navegador
 // solo puede subir el archivo que aquí se autoriza, nunca leer. Mismo patrón que
 // api/upload.js de la web. Los límites del bucket son la segunda barrera.
 
@@ -23,9 +24,10 @@ export default async function handler(req, res) {
   const admin = createClient(process.env.VITE_SUPABASE_URL, process.env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   });
-  // Colaborador con sesión: su carpeta `colaborador/<colaborador_id>/`, que la
-  // política RLS le deja leer (supabase/colaborador-lee-sus-documentos.sql).
-  // Sin sesión (página pública): `inmobiliaria/`, solo legible por el personal.
+  // Cada carpeta tiene su política RLS de lectura (ver supabase/*.sql):
+  // - colaborador con sesión: `colaborador/<colaborador_id>/` (lo ve su empresa)
+  // - comercial/admin con sesión: `contratos/<su id>/` (lo ve él y el admin)
+  // - sin sesión (página pública): `inmobiliaria/` (solo el admin)
   let carpeta = "inmobiliaria";
   const token = (req.headers.authorization || "").replace("Bearer ", "");
   if (token) {
@@ -37,7 +39,17 @@ export default async function handler(req, res) {
       .eq("id", u.user.id)
       .eq("active", true)
       .maybeSingle();
-    if (cu?.colaborador_id) carpeta = `colaborador/${cu.colaborador_id}`;
+    if (cu?.colaborador_id) {
+      carpeta = `colaborador/${cu.colaborador_id}`;
+    } else {
+      const { data: staff } = await admin
+        .from("profiles")
+        .select("id")
+        .eq("id", u.user.id)
+        .eq("active", true)
+        .maybeSingle();
+      if (staff) carpeta = `contratos/${staff.id}`;
+    }
   }
   const path = `${carpeta}/${randomUUID()}.${EXT[parsed.data.contentType]}`; // nunca el nombre del usuario
   const { data, error } = await admin.storage.from("documentos").createSignedUploadUrl(path);

@@ -6,16 +6,20 @@ const NAV_ITEMS = [
   { to: '/', label: 'Dashboard', icon: '📊', exact: true },
   { to: '/estudio/nuevo', label: 'Nuevo Estudio', icon: '➕' },
   { to: '/estudios', label: 'Mis Estudios', icon: '📁' },
+  { to: '/contratos/nuevo', label: 'Nuevo contrato', icon: '📝' },
+  { to: '/contratos', label: 'Mis contratos', icon: '🗂️', exact: true },
   { to: '/clientes', label: 'Clientes', icon: '👥' },
   { to: '/tarifas', label: 'Tarifas', icon: '📄' },
-  { to: '/documentos-inmobiliarias', label: 'Inmobiliarias', icon: '🏢' },
-  { to: '/colaboradores', label: 'Colaboradores', icon: '🤝' },
+  { to: '/documentos-inmobiliarias', label: 'Inmobiliarias', icon: '🏢', adminOnly: true },
+  { to: '/colaboradores', label: 'Colaboradores', icon: '🤝', adminOnly: true },
 ]
 
 const PAGE_TITLES = {
   '/': 'Dashboard',
   '/estudio/nuevo': 'Nuevo Estudio',
   '/estudios': 'Mis Estudios',
+  '/contratos/nuevo': 'Nuevo contrato',
+  '/contratos': 'Contratos',
   '/clientes': 'Clientes',
   '/tarifas': 'Tarifas',
   '/documentos-inmobiliarias': 'Inmobiliarias',
@@ -38,7 +42,9 @@ export default function Layout() {
     .sort((a, b) => b[0].length - a[0].length)
     .find(([path]) => location.pathname.startsWith(path))?.[1] || 'Dashboard'
 
-  const navItems = [...NAV_ITEMS]
+  const navItems = NAV_ITEMS
+    .filter(item => isAdmin || !item.adminOnly)
+    .map(item => (isAdmin && item.to === '/contratos' ? { ...item, label: 'Contratos' } : item))
   if (isAdmin) {
     navItems.push({ to: '/admin', label: 'Admin', icon: '⚙️' })
   }
