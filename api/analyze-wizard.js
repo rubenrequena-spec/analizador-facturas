@@ -95,7 +95,13 @@ export default async function handler(req, res) {
   if (!image) return res.status(400).json({ error: "No se ha recibido ninguna imagen" });
 
   try {
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    // Las keys de usuario (sk-ant-usr-…) no van ligadas a un workspace: hay que
+    // indicarlo con la cabecera anthropic-workspace-id (ANTHROPIC_WORKSPACE_ID).
+    const workspace = process.env.ANTHROPIC_WORKSPACE_ID;
+    const client = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      defaultHeaders: workspace ? { "anthropic-workspace-id": workspace } : undefined,
+    });
     const isPdf = (mediaType || "").toLowerCase().includes("pdf");
     const fileContent = isPdf
       ? { type: "document", source: { type: "base64", media_type: "application/pdf", data: image } }

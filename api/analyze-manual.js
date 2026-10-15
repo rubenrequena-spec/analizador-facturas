@@ -102,7 +102,13 @@ export default async function handler(req, res) {
 Calcula la comparativa completa con todas las tarifas disponibles para este tipo de acceso y devuelve el JSON.`;
 
   try {
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    // Las keys de usuario (sk-ant-usr-…) no van ligadas a un workspace: hay que
+    // indicarlo con la cabecera anthropic-workspace-id (ANTHROPIC_WORKSPACE_ID).
+    const workspace = process.env.ANTHROPIC_WORKSPACE_ID;
+    const client = new Anthropic({
+      apiKey: process.env.ANTHROPIC_API_KEY,
+      defaultHeaders: workspace ? { "anthropic-workspace-id": workspace } : undefined,
+    });
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
