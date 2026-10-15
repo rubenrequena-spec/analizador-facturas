@@ -109,18 +109,22 @@ export default async function handler(req, res) {
 
     const response = await client.messages.create({
       model: "claude-sonnet-4-6",
-      max_tokens: 4000,
+      max_tokens: 8000,
       system: SYSTEM_PROMPT,
       messages: [{
         role: "user",
         content: [
           fileContent,
-          { type: "text", text: "Analiza esta factura de energía y devuelve el JSON con el análisis completo para el cliente." },
+          { type: "text", text: "Analiza esta factura de energía y devuelve el JSON con el análisis completo para el cliente. Responde únicamente con el objeto JSON, sin texto antes ni después." },
         ],
       }],
     });
 
-    const text = response.content[0].text;
+    // Con 4000 tokens la respuesta se cortaba a veces y el JSON llegaba incompleto.
+    if (response.stop_reason === "max_tokens") {
+      throw new Error("El análisis salió incompleto; vuelve a intentarlo");
+    }
+    const text = response.content.find((b) => b.type === "text")?.text || "";
     const jsonMatch = text.match(/\{[\s\S]*\}/);
     if (!jsonMatch) throw new Error("No se pudo extraer el análisis de la factura");
 
